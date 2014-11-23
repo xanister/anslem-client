@@ -16,10 +16,10 @@ define(['NodeClient', 'Stage', 'Sprite', 'howler'], function (NodeClient, Stage,
                 AnslemClient.stage.sprites[e.sprite].draw(ctx, e.spriteFrame, e.x, e.y);
             }
         },
-        init: function (readyCallback) {
+        init: function (serverAddress, readyCallback) {
             AnslemClient.readyCallback = readyCallback;
             AnslemClient.stage.init();
-            AnslemClient.nodeClient.start("http://universeio.anslemgalaxy.com:3000", function (response) {
+            AnslemClient.nodeClient.start(serverAddress, function (response) {
                 var sprites = response.assets.sprites;
                 AnslemClient.stage.loadAssets(
                         Object.keys(sprites).length,

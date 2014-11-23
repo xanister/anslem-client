@@ -21,7 +21,7 @@ requirejs(
             window.ac = AnslemClient;
 
             // Initialize and go ahead and start when ready
-            AnslemClient.init(function () {
+            AnslemClient.init("http://forest.anslemgalaxy.com:3000",function () {
                 AnslemClient.start();
             });
         }
