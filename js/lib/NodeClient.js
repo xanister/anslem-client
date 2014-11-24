@@ -132,6 +132,7 @@ define(['socket.io'], function (io) {
              * @param {String} response
              */
             socket.on('welcome', function (response) {
+                console.log('received welcome');
                 if (nodeClient.welcomeCallback)
                     nodeClient.welcomeCallback(response);
                 socket.emit("clientInfo", {viewWidth: window.innerWidth, viewHeight: window.innerHeight});

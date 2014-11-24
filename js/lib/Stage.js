@@ -54,10 +54,12 @@ define(function () {
         Stage.prototype.init = function (container) {
             container = container || document.body;
             this.canvas = document.createElement('canvas');
-            document.body.appendChild(this.canvas);
+            this.canvas.style.width = '100%';
+            this.canvas.style.height = '100%';
+            this.canvas.width = container.offsetWidth;
+            this.canvas.height = container.offsetHeight;
 
-            this.canvas.width = window.innerWidth > 0 ? window.innerWidth : screen.width;
-            this.canvas.height = window.innerHeight > 0 ? window.innerHeight : screen.height;
+            container.appendChild(this.canvas);
         };
 
         /**
