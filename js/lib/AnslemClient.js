@@ -13,7 +13,7 @@ define(['NodeClient', 'Stage', 'Sprite', 'howler'], function (NodeClient, Stage,
         render: function (ctx) {
             for (var index in AnslemClient.scene.contents) {
                 var e = AnslemClient.scene.contents[index];
-                AnslemClient.stage.sprites[e.sprite].draw(ctx, e.spriteFrame, e.x, e.y);
+                AnslemClient.stage.sprites[e.sprite.image].draw(ctx, e.sprite.frame, e.x * e.sprite.scrollSpeed, e.y);
             }
         },
         init: function (serverAddress, readyCallback) {
