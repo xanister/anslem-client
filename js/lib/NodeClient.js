@@ -134,6 +134,7 @@ define(['socket.io'], function (io) {
             socket.on('welcome', function (response) {
                 if (nodeClient.welcomeCallback)
                     nodeClient.welcomeCallback(response);
+                socket.emit("clientInfo", {viewWidth: window.innerWidth, viewHeight: window.innerHeight});
             });
 
             /**
