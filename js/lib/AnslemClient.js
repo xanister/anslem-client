@@ -5,15 +5,21 @@ define(['NodeClient', 'Stage', 'Sprite', 'howler'], function (NodeClient, Stage,
      */
     var AnslemClient = {
         nodeClient: new NodeClient(),
-        player: {},
         running: false,
         scene: {},
         stage: new Stage(),
         targetFps: 30,
+        viewWidth: window.innerWidth,
+        viewHeight: window.innerHeight,
         render: function (ctx) {
             for (var index in AnslemClient.scene.contents) {
                 var e = AnslemClient.scene.contents[index];
-                AnslemClient.stage.sprites[e.sprite.image].draw(ctx, e.sprite.frame, e.x * e.sprite.scrollSpeed, e.y);
+                AnslemClient.stage.sprites[e.sprite.image].draw(
+                        ctx,
+                        e.sprite.frame,
+                        (e.x - (AnslemClient.scene.player.x - (AnslemClient.viewWidth / 2))) * e.sprite.scrollSpeed,
+                        (e.y - (AnslemClient.scene.player.y - (AnslemClient.viewHeight / 2)))
+                        );
             }
         },
         init: function (serverAddress, readyCallback) {
@@ -45,8 +51,8 @@ define(['NodeClient', 'Stage', 'Sprite', 'howler'], function (NodeClient, Stage,
             AnslemClient.running = false;
             AnslemClient.stage.stop();
         },
-        update: function (data) {
-            AnslemClient.scene = data;
+        update: function (packet) {
+            AnslemClient.scene = packet;
         }
     };
 
