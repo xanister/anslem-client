@@ -37,7 +37,9 @@ define(['socket.io'], function (io) {
          * @access public
          * @var {Object}
          */
-        this.inputs = {touchX: 0, touchY: 0, touchStartX: 0, touchStartY: 0, touchCount: 0};
+        this.inputs = {
+            touches: []
+        };
 
         /*
          * Server time update was last run
@@ -195,24 +197,27 @@ define(['socket.io'], function (io) {
              */
             document.addEventListener("touchstart", function (event) {
                 event.preventDefault();
-                nodeClient.inputs["touchCount"]++;
-                nodeClient.inputs["touchX"] = event.changedTouches[0].clientX;
-                nodeClient.inputs["touchY"] = event.changedTouches[0].clientY;
-                nodeClient.inputs["touchStartX"] = event.changedTouches[0].clientX;
-                nodeClient.inputs["touchStartY"] = event.changedTouches[0].clientY;
+                for (var index in event.changedTouches) {
+                    nodeClient.inputs.touches[index]["touchX"] = event.changedTouches[index].clientX;
+                    nodeClient.inputs.touches[index]["touchY"] = event.changedTouches[index].clientY;
+                    nodeClient.inputs.touches[index]["touchStart"] = true;
+                }
                 nodeClient.inputUpdate();
+                for (var index in event.changedTouches) {
+                    nodeClient.inputs.touches[index]["touchStart"] = false;
+                }
             });
 
             /**
              * Client touchmove
              * @param {Event} event
              */
-            document.addEventListener("touchmove", function (event) {
-                event.preventDefault();
-                nodeClient.inputs["touchX"] = event.changedTouches[0].clientX;
-                nodeClient.inputs["touchY"] = event.changedTouches[0].clientY;
-                nodeClient.inputUpdate();
-            });
+//            document.addEventListener("touchmove", function (event) {
+//                event.preventDefault();
+//                nodeClient.inputs["touchX"] = event.changedTouches[0].clientX;
+//                nodeClient.inputs["touchY"] = event.changedTouches[0].clientY;
+//                nodeClient.inputUpdate();
+//            });
 
             /**
              * Client touchend
@@ -220,10 +225,15 @@ define(['socket.io'], function (io) {
              */
             document.addEventListener("touchend", function (event) {
                 event.preventDefault();
-                nodeClient.inputs["touchCount"]--;
-                nodeClient.inputs["touchX"] = event.changedTouches[0].clientX;
-                nodeClient.inputs["touchY"] = event.changedTouches[0].clientY;
+                for (var index in event.changedTouches) {
+                    nodeClient.inputs.touches[index]["touchX"] = event.changedTouches[index].clientX;
+                    nodeClient.inputs.touches[index]["touchY"] = event.changedTouches[index].clientY;
+                    nodeClient.inputs.touches[index]["touchEnd"] = true;
+                }
                 nodeClient.inputUpdate();
+                for (var index in event.changedTouches) {
+                    nodeClient.inputs.touches[index]["touchEnd"] = false;
+                }
             });
         };
     }
