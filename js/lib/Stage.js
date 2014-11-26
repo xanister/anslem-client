@@ -40,13 +40,6 @@ define(function () {
         this.running = false;
 
         /**
-         * Percent to scale the stage
-         * @access public
-         * @type {Number}
-         */
-        this.viewScale = 1;
-
-        /**
          * Available sounds
          * @access public
          * @type {Array}
@@ -59,6 +52,13 @@ define(function () {
          * @type {Array}
          */
         this.sprites = [];
+
+        /**
+         * Percent to scale the stage
+         * @access public
+         * @type {Number}
+         */
+        this.viewScale = 1;
 
         /**
          * Bind dom events
@@ -114,11 +114,8 @@ define(function () {
          */
         Stage.prototype.setViewResponsive = function () {
             // TODO: Scale based upon orientation and available space
-            var ori = window.orientation;
-            this.canvas.width = (ori == 90 || ori == -90) ? screen.height : screen.width;
-            this.canvas.height = (ori == 90 || ori == -90) ? screen.width : screen.height;
-            this.canvas.width *= this.viewScale;
-            this.canvas.height *= this.viewScale;
+            this.canvas.width = Math.max(document.documentElement.clientWidth, window.innerWidth || 0) * this.viewScale;
+            this.canvas.height = Math.max(document.documentElement.clientHeight, window.innerHeight || 0) * this.viewScale;
         };
 
         /**
