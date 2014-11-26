@@ -12,6 +12,13 @@ define(function () {
         this.canvas = false;
 
         /**
+         * Dom element container
+         * @access public
+         * @var {Element}
+         */
+        this.container = false;
+
+        /**
          * Current calculated fps
          * @access public
          * @type {Number}
@@ -47,19 +54,32 @@ define(function () {
         this.sprites = [];
 
         /**
+         * Bind dom events
+         * @access protected
+         */
+        this.bindEvents = function () {
+            var stage = this;
+            window.addEventListener('orientationchange', function () {
+                this.setViewResponsive.call(stage);
+            });
+        };
+
+        /**
          * Create and initialize canvas element
          * @access public
          * @param {Element} container
          */
         Stage.prototype.init = function (container) {
-            container = container || document.body;
             this.canvas = document.createElement('canvas');
             this.canvas.style.width = '100%';
             this.canvas.style.height = '100%';
-            this.canvas.width = container.offsetWidth;
-            this.canvas.height = container.offsetHeight;
 
-            container.appendChild(this.canvas);
+            this.container = container || document.body;
+            this.container.appendChild(this.canvas);
+
+            this.setViewResponsive();
+
+            this.bindEvents();
         };
 
         /**
@@ -76,6 +96,17 @@ define(function () {
                     assetsLoadedCallback();
                 }
             });
+        };
+
+        /**
+         * Responsive view
+         * @access public
+         */
+        Stage.prototype.setViewResponsive = function () {
+            // TODO: Scale based upon orientation and available space
+            var ori = window.orientation;
+            this.canvas.width = (ori == 90 || ori == -90) ? screen.height : screen.width;
+            this.canvas.height = (ori == 90 || ori == -90) ? screen.width : screen.height;
         };
 
         /**

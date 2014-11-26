@@ -8,13 +8,13 @@ define(['NodeClient', 'Stage', 'Sprite', 'howler'], function (NodeClient, Stage,
             AnslemClient.readyCallback = readyCallback;
             AnslemClient.stage.init();
             AnslemClient.nodeClient.start(function (response) {
-                var sprites = response.assets.sprites;
+                var sprites = response.initialData.assets.sprites;
                 AnslemClient.stage.loadAssets(
                         Object.keys(sprites).length,
                         function (assetLoadedCallback) {
                             for (var index in sprites) {
                                 var s = sprites[index];
-                                AnslemClient.stage.sprites[index] = new Sprite(s.imagePath, s.frameCount, 0, assetLoadedCallback, s.singleImage);
+                                AnslemClient.stage.sprites[index] = new Sprite(s.imagePath, s.frameCount, s.frameSpeed, assetLoadedCallback, s.singleImage);
                             }
                             AnslemClient.stage.sounds = {};
                         },
@@ -23,7 +23,7 @@ define(['NodeClient', 'Stage', 'Sprite', 'howler'], function (NodeClient, Stage,
                             AnslemClient.readyCallback();
                         }
                 );
-            });
+            }, AnslemClient.viewWidth + "," + AnslemClient.viewHeight);
         },
         nodeClient: new NodeClient("http://forest.anslemgalaxy.com:3000"),
         readyCallback: function () {
@@ -33,12 +33,42 @@ define(['NodeClient', 'Stage', 'Sprite', 'howler'], function (NodeClient, Stage,
             var packet = AnslemClient.scene.packet;
             for (var index in packet.contents) {
                 var e = packet.contents[index];
-                AnslemClient.stage.sprites[e.sprite.image].draw(
-                        ctx,
-                        e.sprite.frame,
-                        (e.x - (packet.player.x - (AnslemClient.viewWidth / 2))) * e.sprite.scrollSpeed,
-                        (e.y - (packet.player.y - (AnslemClient.viewHeight / 2)))
-                        );
+                var sprite = AnslemClient.stage.sprites[e.sprite.image];
+                if (e.sprite.tileX) {
+                    // TODO: Figure out tiling issue
+                    sprite.draw(
+                            ctx,
+                            e.sprite.frame,
+                            e.x - (e.width / 2) - packet.viewX,
+                            e.y - (e.height / 2) - packet.viewY
+                            );
+                } else {
+                    sprite.draw(
+                            ctx,
+                            e.sprite.frame,
+                            e.x - (e.width / 2) - packet.viewX,
+                            e.y - (e.height / 2) - packet.viewY
+                            );
+                }
+            }
+        },
+        renderDebug: function (ctx) {
+            var packet = AnslemClient.scene.packet;
+            for (var index in packet.contents) {
+                var e = packet.contents[index];
+                var sprite = AnslemClient.stage.sprites[e.sprite.image];
+                if (e.sprite.tileX) {
+                    sprite.draw(ctx, e.sprite.frame, e.x - (e.width / 2) - packet.viewX, e.y - (e.height / 2) - packet.viewY);
+                } else {
+                    sprite.draw(ctx, e.sprite.frame, e.x - (e.width / 2) - packet.viewX, e.y - (e.height / 2) - packet.viewY);
+                }
+                ctx.beginPath();
+                ctx.arc(e.x - packet.viewX, e.y - packet.viewY, 5, 0, 2 * Math.PI, false);
+                ctx.fillStyle = 'red';
+                ctx.fill();
+
+                ctx.rect(e.x - (e.width / 2) - packet.viewX, e.y - (e.height / 2) - packet.viewY, e.width, e.height);
+                ctx.stroke();
             }
         },
         running: false,

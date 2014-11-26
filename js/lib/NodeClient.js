@@ -24,7 +24,7 @@ define(['socket.io'], function (io) {
          * @access public
          * @var {Object}
          */
-        this.data = {packet: [], lastUpdateTime: 0};
+        this.data = {packet: []};
 
         /**
          * Client id
@@ -39,9 +39,16 @@ define(['socket.io'], function (io) {
          * @var {Object}
          */
         this.inputs = {
-            keyboard: [],
-            touches: []
+            keyboard: {},
+            touches: {}
         };
+
+        /**
+         * Multitouch capable
+         * @access public
+         * @var {Boolean}
+         */
+        this.multitouch = false;
 
         /**
          * Server address
@@ -111,11 +118,12 @@ define(['socket.io'], function (io) {
         /**
          * Open connection and bind server/input callback events
          * @param {function} connectCallback
+         * @param {String} initialData
          */
-        NodeClient.prototype.start = function (connectCallback) {
+        NodeClient.prototype.start = function (connectCallback, initialData) {
             // Open connection
             this.connectCallback = connectCallback || this.connectCallback;
-            socket = io.connect(this.serverAddress, {'sync disconnect on unload': true});
+            socket = io.connect(this.serverAddress, {'sync disconnect on unload': true, query: "initialData=" + initialData});
 
             // Bind events
             var nodeClient = this;
@@ -166,7 +174,6 @@ define(['socket.io'], function (io) {
              */
             socket.on("update", function (response) {
                 nodeClient.data.packet = response.packet;
-                nodeClient.data.lastUpdateTime = response.time;
                 if (nodeClient.updateCallback)
                     nodeClient.updateCallback.call(nodeClient, response);
             });
@@ -201,14 +208,22 @@ define(['socket.io'], function (io) {
              */
             document.addEventListener("touchstart", function (event) {
                 event.preventDefault();
-                for (var index in event.changedTouches) {
-                    nodeClient.inputs.touches[index]["touchX"] = event.changedTouches[index].clientX;
-                    nodeClient.inputs.touches[index]["touchY"] = event.changedTouches[index].clientY;
-                    nodeClient.inputs.touches[index]["touchStart"] = true;
-                }
-                nodeClient.inputUpdate.call(nodeClient, nodeClient.inputs);
-                for (var index in event.changedTouches) {
-                    nodeClient.inputs.touches[index]["touchStart"] = false;
+                if (nodeClient.multitouch) {
+                    for (var index in event.changedTouches) {
+                        if (!nodeClient.inputs.touches[index])
+                            nodeClient.inputs.touches[index] = {};
+                        nodeClient.inputs.touches[index]["touchX"] = event.changedTouches[index].clientX;
+                        nodeClient.inputs.touches[index]["touchY"] = event.changedTouches[index].clientY;
+                        nodeClient.inputs.touches[index]["touchStart"] = true;
+                    }
+                    nodeClient.inputUpdate.call(nodeClient, nodeClient.inputs);
+                    for (var index in event.changedTouches) {
+                        nodeClient.inputs.touches[index]["touchStart"] = false;
+                    }
+                } else {
+                    nodeClient.inputs.touches.x = event.changedTouches[0].clientX;
+                    nodeClient.inputs.touches.y = event.changedTouches[0].clientY;
+                    nodeClient.inputUpdate.call(nodeClient, nodeClient.inputs);
                 }
             });
 
@@ -218,14 +233,22 @@ define(['socket.io'], function (io) {
              */
             document.addEventListener("touchend", function (event) {
                 event.preventDefault();
-                for (var index in event.changedTouches) {
-                    nodeClient.inputs.touches[index]["touchX"] = event.changedTouches[index].clientX;
-                    nodeClient.inputs.touches[index]["touchY"] = event.changedTouches[index].clientY;
-                    nodeClient.inputs.touches[index]["touchEnd"] = true;
-                }
-                nodeClient.inputUpdate.call(nodeClient, nodeClient.inputs);
-                for (var index in event.changedTouches) {
-                    nodeClient.inputs.touches[index]["touchEnd"] = false;
+                if (nodeClient.multitouch) {
+                    for (var index in event.changedTouches) {
+                        if (!nodeClient.inputs.touches[index])
+                            nodeClient.inputs.touches[index] = {};
+                        nodeClient.inputs.touches[index]["touchX"] = event.changedTouches[index].clientX;
+                        nodeClient.inputs.touches[index]["touchY"] = event.changedTouches[index].clientY;
+                        nodeClient.inputs.touches[index]["touchEnd"] = true;
+                    }
+                    nodeClient.inputUpdate.call(nodeClient, nodeClient.inputs);
+                    for (var index in event.changedTouches) {
+                        delete nodeClient.inputs.touches[index];
+                    }
+                } else {
+                    nodeClient.inputs.touches.x = false;
+                    nodeClient.inputs.touches.y = false;
+                    nodeClient.inputUpdate.call(nodeClient, nodeClient.inputs);
                 }
             });
         };

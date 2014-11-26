@@ -57,6 +57,21 @@ define(function () {
          * @param {Number} frame
          * @param {Number} tarX
          * @param {Number} tarY
+         */
+        Sprite.prototype.draw = function (ctx, frame, tarX, tarY) {
+            frame = Math.floor(frame || 0);
+            var xOffset = this.singleImage ? Math.floor(srcX + (frame * this.width)) : 0;
+            var img = this.singleImage ? this.images[0] : this.images[frame];
+            ctx.drawImage(img, xOffset, 0, this.width, this.height, tarX, tarY, this.width, this.height);
+        };
+
+        /**
+         * Draw sprite at target location with
+         * extra options
+         * @param {Canvas.context} ctx
+         * @param {Number} frame
+         * @param {Number} tarX
+         * @param {Number} tarY
          * @param {Number} width
          * @param {Number} height
          * @param {Number} srcX
@@ -64,7 +79,7 @@ define(function () {
          * @param {Number} srcWidth
          * @param {Number} srcHeight
          */
-        Sprite.prototype.draw = function (ctx, frame, tarX, tarY, width, height, srcX, srcY, srcWidth, srcHeight) {
+        Sprite.prototype.drawExt = function (ctx, frame, tarX, tarY, width, height, srcX, srcY, srcWidth, srcHeight) {
             frame = Math.floor(frame || 0);
             width = width || this.width;
             height = height || this.height;
@@ -89,9 +104,11 @@ define(function () {
          */
         Sprite.prototype.drawTiled = function (ctx, frame, tarX, tarY, tiledWidth, tiledHeight) {
             var img = this.singleImage ? this.images[0] : this.images[frame];
-            ctx.rect(tarX, tarY, tiledWidth, tiledHeight);
-            ctx.fillStyle = ctx.createPattern(img, "repeat");
-            ctx.fill();
+            for (var x = tarX; x < tiledWidth; x += this.width) {
+                for (var y = tarY; y < tiledHeight; y += this.height) {
+                    ctx.drawImage(img, 0, 0, this.width, this.height, x, y, this.width, this.height);
+                }
+            }
         };
 
         /**
