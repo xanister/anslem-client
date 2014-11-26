@@ -1,4 +1,8 @@
 define(['NodeClient', 'Stage', 'Sprite', 'howler'], function (NodeClient, Stage, Sprite) {
+    var anslemConfig = {
+        viewScale: 2
+    };
+
     /**
      * Anslem game client wrapper
      * @type Object
@@ -6,7 +10,7 @@ define(['NodeClient', 'Stage', 'Sprite', 'howler'], function (NodeClient, Stage,
     var AnslemClient = {
         init: function (readyCallback) {
             AnslemClient.readyCallback = readyCallback;
-            AnslemClient.stage.init();
+            AnslemClient.stage.init(document.body, anslemConfig.viewScale);
             AnslemClient.nodeClient.start(function (response) {
                 var sprites = response.initialData.assets.sprites;
                 AnslemClient.stage.loadAssets(
@@ -35,20 +39,11 @@ define(['NodeClient', 'Stage', 'Sprite', 'howler'], function (NodeClient, Stage,
                 var e = packet.contents[index];
                 var sprite = AnslemClient.stage.sprites[e.sprite.image];
                 if (e.sprite.tileX) {
-                    // TODO: Figure out tiling issue
-                    sprite.draw(
-                            ctx,
-                            e.sprite.frame,
-                            e.x - (e.width / 2) - packet.viewX,
-                            e.y - (e.height / 2) - packet.viewY
-                            );
+                    for (var xx = -Math.floor((packet.viewX * e.sprite.scrollSpeed) % e.width); xx < AnslemClient.viewWidth; xx = xx + e.width) {
+                        sprite.draw(ctx, e.sprite.frame, xx, e.y - (e.height / 2) - packet.viewY);
+                    }
                 } else {
-                    sprite.draw(
-                            ctx,
-                            e.sprite.frame,
-                            e.x - (e.width / 2) - packet.viewX,
-                            e.y - (e.height / 2) - packet.viewY
-                            );
+                    sprite.draw(ctx, e.sprite.frame, e.x - (e.width / 2) - packet.viewX, e.y - (e.height / 2) - packet.viewY);
                 }
             }
         },
@@ -83,8 +78,8 @@ define(['NodeClient', 'Stage', 'Sprite', 'howler'], function (NodeClient, Stage,
             AnslemClient.stage.stop();
         },
         targetFps: 30,
-        viewHeight: window.innerHeight,
-        viewWidth: window.innerWidth
+        viewHeight: screen.height * anslemConfig.viewScale,
+        viewWidth: screen.width * anslemConfig.viewScale
     };
 
     return AnslemClient;

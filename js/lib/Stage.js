@@ -40,6 +40,13 @@ define(function () {
         this.running = false;
 
         /**
+         * Percent to scale the stage
+         * @access public
+         * @type {Number}
+         */
+        this.viewScale = 1;
+
+        /**
          * Available sounds
          * @access public
          * @type {Array}
@@ -68,14 +75,17 @@ define(function () {
          * Create and initialize canvas element
          * @access public
          * @param {Element} container
+         * @param {Number} viewScale
          */
-        Stage.prototype.init = function (container) {
+        Stage.prototype.init = function (container, viewScale) {
             this.canvas = document.createElement('canvas');
             this.canvas.style.width = '100%';
             this.canvas.style.height = '100%';
 
             this.container = container || document.body;
             this.container.appendChild(this.canvas);
+
+            this.viewScale = viewScale || this.viewScale;
 
             this.setViewResponsive();
 
@@ -107,6 +117,8 @@ define(function () {
             var ori = window.orientation;
             this.canvas.width = (ori == 90 || ori == -90) ? screen.height : screen.width;
             this.canvas.height = (ori == 90 || ori == -90) ? screen.width : screen.height;
+            this.canvas.width *= this.viewScale;
+            this.canvas.height *= this.viewScale;
         };
 
         /**
