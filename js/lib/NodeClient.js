@@ -1,9 +1,10 @@
 define(['socket.io'], function (io) {
     /**
      * NodeClient
+     * @param {String} serverAddress
      * @returns {NodeClient}
      */
-    function NodeClient() {
+    function NodeClient(serverAddress) {
         /**
          * IO socket
          * @access private
@@ -23,7 +24,7 @@ define(['socket.io'], function (io) {
          * @access public
          * @var {Object}
          */
-        this.data = {};
+        this.data = {packet: [], lastUpdateTime: 0};
 
         /**
          * Client id
@@ -38,87 +39,116 @@ define(['socket.io'], function (io) {
          * @var {Object}
          */
         this.inputs = {
+            keyboard: [],
             touches: []
         };
 
-        /*
-         * Server time update was last run
-         * @access public
-         * @var {Date}
-         */
-        this.lastInputTime = false;
-
         /**
-         * Update server with client inputs
+         * Server address
+         * @access public
+         * @var {String}
          */
-        this.inputUpdate = function () {
-            socket.emit("clientInput", this.inputs);
-        };
+        this.serverAddress = serverAddress;
 
         /**
          * Connection callback
+         * @access public
          * @param {Object} response
          */
         this.connectCallback = function (response) {
-            console.log("Connection opened. ID: " + response.id);
+            this.log("Connection opened:", response);
         };
 
         /**
          * Disconnect callback
+         * @access public
          */
         this.disconnectCallback = function () {
-            console.log("Connection closed");
+            this.log("Connection closed");
         };
 
         /**
          * Error callback
+         * @access public
          * @param {Object} response
          */
         this.errorCallback = function (response) {
-            console.log(response.error);
+            this.log("Error recieved:", response);
         };
 
         /**
          * Message recieved callback
+         * @access public
          * @param {String} response
          */
         this.messageCallback = function (response) {
-            console.log(response.message);
-        };
-
-        /**
-         * Welcome recieved callback
-         * @param {String} response
-         */
-        this.welcomeCallback = function (response) {
-            console.log(response.message);
+            this.log("Message recieved:", response);
         };
 
         /**
          * Update data callback
+         * @access public
          */
         this.updateCallback = false;
 
         /**
-         * Open connection and bind server/input callback events
-         * @param {String} serverAddress
-         * @param {function} welcomeCallback
+         * Update server with client inputs
+         * @access public
+         * @param {Object} inputs
          */
-        this.start = function (serverAddress, welcomeCallback) {
-            this.welcomeCallback = welcomeCallback || false;
+        NodeClient.prototype.inputUpdate = function (inputs) {
+            socket.emit("clientInput", inputs);
+        };
 
+        /**
+         * Basic logging
+         * @param {String} message
+         */
+        NodeClient.prototype.log = function (message) {
+            console.log(message);
+        };
+
+        /**
+         * Open connection and bind server/input callback events
+         * @param {function} connectCallback
+         */
+        NodeClient.prototype.start = function (connectCallback) {
             // Open connection
-            socket = io.connect(serverAddress, {'sync disconnect on unload': true});
+            this.connectCallback = connectCallback || this.connectCallback;
+            socket = io.connect(this.serverAddress, {'sync disconnect on unload': true});
 
             // Bind events
             var nodeClient = this;
+
+            /**
+             * On connection
+             * @param {Object} response expects {message: 'a message', clientId: 'aclientid', initialData: {someDataObject}}
+             */
+            socket.on("connection", function (response) {
+                nodeClient.connected = true;
+                nodeClient.id = response.clientId;
+                nodeClient.initialData = response.initialData;
+                if (nodeClient.connectCallback)
+                    nodeClient.connectCallback.call(nodeClient, response);
+            });
+
+            /**
+             * On disconnect
+             */
+            socket.on('disconnect', function () {
+                nodeClient.connected = false;
+                socket.disconnect();
+                if (nodeClient.disconnectCallback)
+                    nodeClient.disconnectCallback.call(nodeClient);
+            });
 
             /**
              * On error
              * @param {Object} response
              */
             socket.on('error', function (response) {
-                nodeClient.errorCallback(response);
+                if (nodeClient.errorCallback)
+                    nodeClient.errorCallback.call(nodeClient, response);
             });
 
             /**
@@ -126,38 +156,8 @@ define(['socket.io'], function (io) {
              * @param {String} response
              */
             socket.on('message', function (response) {
-                nodeClient.messageCallback(response);
-            });
-
-            /**
-             * On welcome
-             * @param {String} response
-             */
-            socket.on('welcome', function (response) {
-                console.log('received welcome');
-                if (nodeClient.welcomeCallback)
-                    nodeClient.welcomeCallback(response);
-                socket.emit("clientInfo", {viewWidth: window.innerWidth, viewHeight: window.innerHeight});
-            });
-
-            /**
-             * On connection
-             * @param {Object} response
-             */
-            socket.on("connection", function (response) {
-                nodeClient.id = response.id;
-                nodeClient.connected = true;
-                nodeClient.connectCallback(response);
-            });
-
-            /**
-             * On disconnect
-             * TODO: stop gracefully when server disappears unexpectedly
-             */
-            socket.on('disconnect', function () {
-                socket.disconnect();
-                nodeClient.connected = false;
-                nodeClient.disconnectCallback();
+                if (nodeClient.messageCallback)
+                    nodeClient.messageCallback.call(nodeClient, response);
             });
 
             /**
@@ -165,10 +165,10 @@ define(['socket.io'], function (io) {
              * @param {Object} response
              */
             socket.on("update", function (response) {
-                nodeClient.data = response.data;
-                nodeClient.lastUpdateTime = response.time;
+                nodeClient.data.packet = response.packet;
+                nodeClient.data.lastUpdateTime = response.time;
                 if (nodeClient.updateCallback)
-                    nodeClient.updateCallback(response.data);
+                    nodeClient.updateCallback.call(nodeClient, response);
             });
 
             /**
@@ -177,8 +177,10 @@ define(['socket.io'], function (io) {
              */
             document.onkeydown = function (event) {
                 var keyPressed = String.fromCharCode(event.keyCode);
-                nodeClient.inputs[keyPressed] = true;
-                nodeClient.inputUpdate();
+                nodeClient.inputs.keyboard[keyPressed] = true;
+                nodeClient.inputs.keyboard[keyPressed + "Down"] = true;
+                nodeClient.inputUpdate.call(nodeClient, nodeClient.inputs);
+                nodeClient.inputs.keyboard[keyPressed + "Down"] = false;
             };
 
             /**
@@ -187,8 +189,10 @@ define(['socket.io'], function (io) {
              */
             document.onkeyup = function (event) {
                 var keyPressed = String.fromCharCode(event.keyCode);
-                nodeClient.inputs[keyPressed] = false;
-                nodeClient.inputUpdate();
+                nodeClient.inputs.keyboard[keyPressed] = false;
+                nodeClient.inputs.keyboard[keyPressed + "Up"] = true;
+                nodeClient.inputUpdate.call(nodeClient, nodeClient.inputs);
+                nodeClient.inputs.keyboard[keyPressed + "Up"] = false;
             };
 
             /**
@@ -202,22 +206,11 @@ define(['socket.io'], function (io) {
                     nodeClient.inputs.touches[index]["touchY"] = event.changedTouches[index].clientY;
                     nodeClient.inputs.touches[index]["touchStart"] = true;
                 }
-                nodeClient.inputUpdate();
+                nodeClient.inputUpdate.call(nodeClient, nodeClient.inputs);
                 for (var index in event.changedTouches) {
                     nodeClient.inputs.touches[index]["touchStart"] = false;
                 }
             });
-
-            /**
-             * Client touchmove
-             * @param {Event} event
-             */
-//            document.addEventListener("touchmove", function (event) {
-//                event.preventDefault();
-//                nodeClient.inputs["touchX"] = event.changedTouches[0].clientX;
-//                nodeClient.inputs["touchY"] = event.changedTouches[0].clientY;
-//                nodeClient.inputUpdate();
-//            });
 
             /**
              * Client touchend
@@ -230,7 +223,7 @@ define(['socket.io'], function (io) {
                     nodeClient.inputs.touches[index]["touchY"] = event.changedTouches[index].clientY;
                     nodeClient.inputs.touches[index]["touchEnd"] = true;
                 }
-                nodeClient.inputUpdate();
+                nodeClient.inputUpdate.call(nodeClient, nodeClient.inputs);
                 for (var index in event.changedTouches) {
                     nodeClient.inputs.touches[index]["touchEnd"] = false;
                 }

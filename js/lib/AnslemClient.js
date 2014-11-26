@@ -4,28 +4,10 @@ define(['NodeClient', 'Stage', 'Sprite', 'howler'], function (NodeClient, Stage,
      * @type Object
      */
     var AnslemClient = {
-        nodeClient: new NodeClient(),
-        running: false,
-        scene: {},
-        stage: new Stage(),
-        targetFps: 30,
-        viewWidth: window.innerWidth,
-        viewHeight: window.innerHeight,
-        render: function (ctx) {
-            for (var index in AnslemClient.scene.contents) {
-                var e = AnslemClient.scene.contents[index];
-                AnslemClient.stage.sprites[e.sprite.image].draw(
-                        ctx,
-                        e.sprite.frame,
-                        (e.x - (AnslemClient.scene.player.x - (AnslemClient.viewWidth / 2))) * e.sprite.scrollSpeed,
-                        (e.y - (AnslemClient.scene.player.y - (AnslemClient.viewHeight / 2)))
-                        );
-            }
-        },
-        init: function (serverAddress, readyCallback) {
+        init: function (readyCallback) {
             AnslemClient.readyCallback = readyCallback;
             AnslemClient.stage.init();
-            AnslemClient.nodeClient.start(serverAddress, function (response) {
+            AnslemClient.nodeClient.start(function (response) {
                 var sprites = response.assets.sprites;
                 AnslemClient.stage.loadAssets(
                         Object.keys(sprites).length,
@@ -37,12 +19,31 @@ define(['NodeClient', 'Stage', 'Sprite', 'howler'], function (NodeClient, Stage,
                             AnslemClient.stage.sounds = {};
                         },
                         function () {
-                            AnslemClient.nodeClient.updateCallback = AnslemClient.update;
+                            AnslemClient.scene = AnslemClient.nodeClient.data;
                             AnslemClient.readyCallback();
                         }
                 );
             });
         },
+        nodeClient: new NodeClient("http://forest.anslemgalaxy.com:3000"),
+        readyCallback: function () {
+            console.log("Ready");
+        },
+        render: function (ctx) {
+            var packet = AnslemClient.scene.packet;
+            for (var index in packet.contents) {
+                var e = packet.contents[index];
+                AnslemClient.stage.sprites[e.sprite.image].draw(
+                        ctx,
+                        e.sprite.frame,
+                        (e.x - (packet.player.x - (AnslemClient.viewWidth / 2))) * e.sprite.scrollSpeed,
+                        (e.y - (packet.player.y - (AnslemClient.viewHeight / 2)))
+                        );
+            }
+        },
+        running: false,
+        scene: {},
+        stage: new Stage(),
         start: function () {
             AnslemClient.running = true;
             AnslemClient.stage.start(AnslemClient.render);
@@ -51,9 +52,9 @@ define(['NodeClient', 'Stage', 'Sprite', 'howler'], function (NodeClient, Stage,
             AnslemClient.running = false;
             AnslemClient.stage.stop();
         },
-        update: function (packet) {
-            AnslemClient.scene = packet;
-        }
+        targetFps: 30,
+        viewHeight: window.innerHeight,
+        viewWidth: window.innerWidth
     };
 
     return AnslemClient;
