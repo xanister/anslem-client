@@ -1,4 +1,4 @@
-define(['socket.io'], function (io) {
+define(['lib/socket.io'], function (io) {
     /**
      * NodeClient
      * @param {String} serverAddress
@@ -6,11 +6,32 @@ define(['socket.io'], function (io) {
      */
     function NodeClient(serverAddress) {
         /**
+         * Touch distance required to register a swipe
+         * @access static
+         * @var {Number}
+         */
+        NodeClient.swipeDistance = 50;
+
+        /**
          * IO socket
          * @access private
          * @var {Object}
          */
         var socket;
+
+        /**
+         * Client screen width
+         * @access public
+         * @var {Number}
+         */
+        this.clientScreenWidth = Math.max(document.documentElement.clientWidth, window.innerWidth || 0);
+
+        /**
+         * Client screen height
+         * @access public
+         * @var {Number}
+         */
+        this.clientScreenHeight = Math.max(document.documentElement.clientWidth, window.innerWidth || 0);
 
         /**
          * Connected flag
@@ -38,17 +59,7 @@ define(['socket.io'], function (io) {
          * @access public
          * @var {Object}
          */
-        this.inputs = {
-            keyboard: {},
-            touches: {}
-        };
-
-        /**
-         * Multitouch capable
-         * @access public
-         * @var {Boolean}
-         */
-        this.multitouch = false;
+        this.inputs = {keyboard: {}, touches: {}, events: {}};
 
         /**
          * Server address
@@ -116,14 +127,30 @@ define(['socket.io'], function (io) {
         };
 
         /**
+         * Generate empty event object
+         * @returns {Object}
+         */
+        NodeClient.prototype.getEmptyInputEvents = function () {
+            return {
+                keydown: {},
+                keyup: {},
+                swipe: {},
+                touchstart: false,
+                touchend: false
+            };
+        };
+
+        /**
          * Open connection and bind server/input callback events
          * @param {function} connectCallback
-         * @param {String} initialData
          */
-        NodeClient.prototype.start = function (connectCallback, initialData) {
+        NodeClient.prototype.start = function (connectCallback) {
+            // Reset input events
+            this.inputs.events = this.getEmptyInputEvents();
+
             // Open connection
             this.connectCallback = connectCallback || this.connectCallback;
-            socket = io.connect(this.serverAddress, {'sync disconnect on unload': true, query: "initialData=" + initialData});
+            socket = io.connect(this.serverAddress, {'sync disconnect on unload': true, query: "screenSize=" + this.clientScreenWidth + "," + this.clientScreenHeight});
 
             // Bind events
             var nodeClient = this;
@@ -155,6 +182,8 @@ define(['socket.io'], function (io) {
              * @param {Object} response
              */
             socket.on('error', function (response) {
+                nodeClient.connected = false;
+                socket.disconnect();
                 if (nodeClient.errorCallback)
                     nodeClient.errorCallback.call(nodeClient, response);
             });
@@ -182,25 +211,25 @@ define(['socket.io'], function (io) {
              * Client keydown
              * @param {Event} event
              */
-            document.onkeydown = function (event) {
+            document.addEventListener("keydown", function (event) {
                 var keyPressed = String.fromCharCode(event.keyCode);
                 nodeClient.inputs.keyboard[keyPressed] = true;
-                nodeClient.inputs.keyboard[keyPressed + "Down"] = true;
+                nodeClient.inputs.events.keydown[keyPressed] = true;
                 nodeClient.inputUpdate.call(nodeClient, nodeClient.inputs);
-                nodeClient.inputs.keyboard[keyPressed + "Down"] = false;
-            };
+                nodeClient.inputs.events.keydown[keyPressed] = false;
+            });
 
             /**
              * Client keyup
              * @param {Event} event
              */
-            document.onkeyup = function (event) {
+            document.addEventListener("keyup", function (event) {
                 var keyPressed = String.fromCharCode(event.keyCode);
                 nodeClient.inputs.keyboard[keyPressed] = false;
-                nodeClient.inputs.keyboard[keyPressed + "Up"] = true;
+                nodeClient.inputs.events.keyup[keyPressed] = true;
                 nodeClient.inputUpdate.call(nodeClient, nodeClient.inputs);
-                nodeClient.inputs.keyboard[keyPressed + "Up"] = false;
-            };
+                nodeClient.inputs.events.keyup[keyPressed] = false;
+            });
 
             /**
              * Client touchstart
@@ -208,23 +237,35 @@ define(['socket.io'], function (io) {
              */
             document.addEventListener("touchstart", function (event) {
                 event.preventDefault();
-                if (nodeClient.multitouch) {
-                    for (var index in event.changedTouches) {
-                        if (!nodeClient.inputs.touches[index])
-                            nodeClient.inputs.touches[index] = {};
-                        nodeClient.inputs.touches[index]["touchX"] = event.changedTouches[index].clientX;
-                        nodeClient.inputs.touches[index]["touchY"] = event.changedTouches[index].clientY;
-                        nodeClient.inputs.touches[index]["touchStart"] = true;
-                    }
-                    nodeClient.inputUpdate.call(nodeClient, nodeClient.inputs);
-                    for (var index in event.changedTouches) {
-                        nodeClient.inputs.touches[index]["touchStart"] = false;
-                    }
-                } else {
-                    nodeClient.inputs.touches.x = event.changedTouches[0].clientX;
-                    nodeClient.inputs.touches.y = event.changedTouches[0].clientY;
-                    nodeClient.inputUpdate.call(nodeClient, nodeClient.inputs);
+                for (var index = 0; index < event.changedTouches.length; index++) {
+                    nodeClient.inputs.touches[index] = {
+                        x: event.changedTouches[index].clientX,
+                        y: event.changedTouches[index].clientY,
+                        startX: event.changedTouches[index].clientX,
+                        startY: event.changedTouches[index].clientY
+                    };
+                    nodeClient.inputs.events.touchstart = {
+                        touchIndex: index,
+                        x: event.changedTouches[index].clientX,
+                        y: event.changedTouches[index].clientY
+                    };
                 }
+
+                nodeClient.inputUpdate.call(nodeClient, nodeClient.inputs);
+                nodeClient.inputs.events.touchstart = false;
+            });
+
+            /**
+             * Client touchmove, possibly dangerous to run over network
+             * @param {Event} event
+             */
+            document.addEventListener("touchmove", function (event) {
+                event.preventDefault();
+                for (var index = 0; index < event.changedTouches.length; index++) {
+                    nodeClient.inputs.touches[index].x = event.changedTouches[index].clientX;
+                    nodeClient.inputs.touches[index].y = event.changedTouches[index].clientY;
+                }
+                nodeClient.inputUpdate.call(nodeClient, nodeClient.inputs);
             });
 
             /**
@@ -233,23 +274,31 @@ define(['socket.io'], function (io) {
              */
             document.addEventListener("touchend", function (event) {
                 event.preventDefault();
-                if (nodeClient.multitouch) {
-                    for (var index in event.changedTouches) {
-                        if (!nodeClient.inputs.touches[index])
-                            nodeClient.inputs.touches[index] = {};
-                        nodeClient.inputs.touches[index]["touchX"] = event.changedTouches[index].clientX;
-                        nodeClient.inputs.touches[index]["touchY"] = event.changedTouches[index].clientY;
-                        nodeClient.inputs.touches[index]["touchEnd"] = true;
+                for (var index = 0; index < event.changedTouches.length; index++) {
+                    var swipeDistX = event.changedTouches[index].clientX - nodeClient.inputs.touches[index].startX;
+                    var swipeDistY = event.changedTouches[index].clientY - nodeClient.inputs.touches[index].startY;
+                    var swipeH = swipeDistX > NodeClient.swipeDistance ? "right" : (swipeDistX < -NodeClient.swipeDistance ? "left" : false);
+                    var swipeV = swipeDistY > NodeClient.swipeDistance ? "down" : (swipeDistY < -NodeClient.swipeDistance ? "up" : false);
+                    var swipeDirection = swipeV || swipeH || false;
+                    if (swipeDirection) {
+                        nodeClient.inputs.events.swipe[swipeDirection] = {
+                            distX: swipeDistX,
+                            distY: swipeDistY,
+                            dir: swipeDirection,
+                            x: event.changedTouches[index].clientX,
+                            y: event.changedTouches[index].clientY
+                        };
                     }
-                    nodeClient.inputUpdate.call(nodeClient, nodeClient.inputs);
-                    for (var index in event.changedTouches) {
-                        delete nodeClient.inputs.touches[index];
-                    }
-                } else {
-                    nodeClient.inputs.touches.x = false;
-                    nodeClient.inputs.touches.y = false;
-                    nodeClient.inputUpdate.call(nodeClient, nodeClient.inputs);
+                    delete nodeClient.inputs.touches[index];
+                    nodeClient.inputs.events.touchend = {
+                        touchIndex: index,
+                        x: event.changedTouches[index].clientX,
+                        y: event.changedTouches[index].clientY
+                    };
                 }
+                nodeClient.inputUpdate.call(nodeClient, nodeClient.inputs);
+                nodeClient.inputs.events.touchend = false;
+                nodeClient.inputs.events.swipe = {};
             });
         };
     }

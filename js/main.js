@@ -2,7 +2,7 @@
  * Setup requirejs
  */
 requirejs.config({
-    baseUrl: 'js/lib',
+    baseUrl: 'js',
     shim: {
         'socketio': {
             exports: 'io'
@@ -15,7 +15,7 @@ requirejs.config({
  * @param {AnslemClient} AnslemClient
  */
 requirejs(
-        ['AnslemClient'],
+        ['./AnslemClient'],
         function (AnslemClient) {
             // Attach to window for debugging
             window.ac = AnslemClient;

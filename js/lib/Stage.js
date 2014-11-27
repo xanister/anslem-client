@@ -23,14 +23,7 @@ define(function () {
          * @access public
          * @type {Number}
          */
-        this.fps = 0;
-
-        /**
-         * Debug mode flag
-         * @access public
-         * @type {Boolean}
-         */
-        this.debugMode = false;
+        this.currentFps = 0;
 
         /**
          * Running flag
@@ -131,12 +124,9 @@ define(function () {
             function step(timestamp) {
                 ctx.clearRect(0, 0, self.canvas.width, self.canvas.height);
                 renderCallback(ctx);
-                if (self.debugMode) {
-                    var progress = timestamp - startTime;
-                    startTime = timestamp;
-                    self.fps = 1000 / progress;
-                    ctx.fillText("FPS: " + Math.round(self.fps), 5, 5);
-                }
+                var progress = timestamp - startTime;
+                startTime = timestamp;
+                self.currentFps = Math.round(1000 / progress);
                 if (self.running)
                     window.requestAnimationFrame(step);
             }
