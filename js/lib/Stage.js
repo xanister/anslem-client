@@ -25,7 +25,7 @@ define(function () {
          * @property container
          * @type {Element}
          */
-        this.container = false;
+        this.container = document.body;
 
         /**
          * Current calculated fps
@@ -94,7 +94,7 @@ define(function () {
             this.canvas.style.width = '100%';
             this.canvas.style.height = '100%';
 
-            this.container = container || document.body;
+            this.container = container || this.container;
             this.container.appendChild(this.canvas);
 
             this.viewScale = viewScale || this.viewScale;

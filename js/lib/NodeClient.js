@@ -50,7 +50,7 @@ define(['lib/socket.io'], function (io) {
         /**
          * Client id
          *
-         * @property
+         * @property id
          * @type {String}
          */
         this.id = false;
@@ -74,7 +74,7 @@ define(['lib/socket.io'], function (io) {
         /**
          * Connection callback
          *
-         * @method connectCallback
+         * @event connectCallback
          * @param {Object} response
          */
         this.connectCallback = function (response) {
@@ -84,7 +84,7 @@ define(['lib/socket.io'], function (io) {
         /**
          * Disconnect callback
          *
-         * @method disconnectCallback
+         * @event disconnectCallback
          */
         this.disconnectCallback = function () {
             this.log("Connection closed");
@@ -93,7 +93,7 @@ define(['lib/socket.io'], function (io) {
         /**
          * Error callback
          *
-         * @method errorCallback
+         * @event errorCallback
          * @param {Object} response
          */
         this.errorCallback = function (response) {
@@ -103,7 +103,7 @@ define(['lib/socket.io'], function (io) {
         /**
          * Message recieved callback
          *
-         * @method messageCallback
+         * @event messageCallback
          * @param {String} response
          */
         this.messageCallback = function (response) {
@@ -113,7 +113,7 @@ define(['lib/socket.io'], function (io) {
         /**
          * Update data callback
          *
-         * @method messageCallback
+         * @event messageCallback
          */
         this.updateCallback = false;
 
@@ -206,6 +206,7 @@ define(['lib/socket.io'], function (io) {
              * On connect
              *
              * @event connection
+             * @private
              * @param {Object} response expects {message: 'a message', clientId: 'aclientid', initialData: {someDataObject}}
              */
             socket.on("connection", function (response) {
@@ -220,18 +221,21 @@ define(['lib/socket.io'], function (io) {
              * Connection error
              *
              * @event connect_error
+             * @private
              * @param {Object} response
              */
             socket.on('connect_error', function (response) {
                 nodeClient.connected = false;
                 socket.disconnect();
-                console.log('Error connecting to server', response);
+                if (nodeClient.errorCallback)
+                    nodeClient.errorCallback.call(nodeClient, response);
             });
 
             /**
              * On disconnect
              *
              * @event disconnect
+             * @private
              */
             socket.on('disconnect', function () {
                 nodeClient.connected = false;
@@ -244,6 +248,7 @@ define(['lib/socket.io'], function (io) {
              * On error
              *
              * @event error
+             * @private
              * @param {Object} response
              */
             socket.on('error', function (response) {
@@ -257,6 +262,7 @@ define(['lib/socket.io'], function (io) {
              * On message
              *
              * @event message
+             * @private
              * @param {String} response
              */
             socket.on('message', function (response) {
@@ -268,6 +274,7 @@ define(['lib/socket.io'], function (io) {
              * On update
              *
              * @event update
+             * @private
              * @param {Object} response
              */
             socket.on("update", function (response) {
@@ -280,6 +287,7 @@ define(['lib/socket.io'], function (io) {
              * Update server with new screen size on orientation change
              *
              * @event orientationchange
+             * @private
              */
             window.addEventListener('orientationchange', function () {
                 nodeClient.infoUpdate({screenWidth: nodeClient.getClientScreenWidth(), screenHeight: nodeClient.getClientScreenHeight()});
@@ -289,6 +297,7 @@ define(['lib/socket.io'], function (io) {
              * Update server with new screen size on resize
              *
              * @event resize
+             * @private
              */
             window.addEventListener('resize', function () {
                 nodeClient.infoUpdate({screenWidth: nodeClient.getClientScreenWidth(), screenHeight: nodeClient.getClientScreenHeight()});
@@ -298,6 +307,7 @@ define(['lib/socket.io'], function (io) {
              * Client keydown
              *
              * @event keydown
+             * @private
              * @param {Event} event
              */
             document.addEventListener("keydown", function (event) {
@@ -313,6 +323,7 @@ define(['lib/socket.io'], function (io) {
              * Client keyup
              *
              * @event keyup
+             * @private
              * @param {Event} event
              */
             document.addEventListener("keyup", function (event) {
@@ -326,6 +337,7 @@ define(['lib/socket.io'], function (io) {
              * Client touchstart
              *
              * @event touchstart
+             * @private
              * @param {Event} event
              */
             document.addEventListener("touchstart", function (event) {
@@ -351,6 +363,7 @@ define(['lib/socket.io'], function (io) {
              * Client touchmove, possibly dangerous to run over network
              *
              * @event touchmove
+             * @private
              * @param {Event} event
              */
             document.addEventListener("touchmove", function (event) {
@@ -366,6 +379,7 @@ define(['lib/socket.io'], function (io) {
              * Client touchend
              *
              * @event touchend
+             * @private
              * @param {Event} event
              */
             document.addEventListener("touchend", function (event) {

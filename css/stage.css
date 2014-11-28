@@ -4,5 +4,17 @@ html,body{
     margin: 0;
     padding: 0;
 
+    position: relative;
+
     overflow: hidden;
+}
+
+.client-message{
+    margin: 5vw;
+    padding: 3vw;
+
+    position: absolute;
+
+    border-radius: 5px;
+    border: 1px solid black;
 }

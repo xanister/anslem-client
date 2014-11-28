@@ -12,7 +12,7 @@ define(function () {
      * @param {String} imagePath
      * @param {Number} frameCount
      * @param {Number} frameSpeed
-     * @param {function} imagesLoadedCallback
+     * @param {Function} imagesLoadedCallback
      * @param {Boolean} singleImage
      */
     function Sprite(imagePath, frameCount, frameSpeed, imagesLoadedCallback, singleImage) {
@@ -117,8 +117,7 @@ define(function () {
         /**
          * Callback for when frame has loaded
          *
-         * @method imageLoaded
-         * @protected
+         * @event imageLoaded
          */
         this.imageLoaded = function () {
             this.imageLoaded.count = this.imageLoaded.count ? this.imageLoaded.count + 1 : 1;
@@ -129,8 +128,7 @@ define(function () {
         /**
          * Callback when all images have loaded
          *
-         * @method imagesLoaded
-         * @protected
+         * @event imagesLoaded
          */
         this.imagesLoaded = function () {
             this.width = this.singleImage ? this.images[0].width / this.frameCount : this.images[0].width;
@@ -142,10 +140,9 @@ define(function () {
          * Loads images for sprite
          *
          * @method loadImages
-         * @protected
          * @param {String} imagePath
          * @param {Number} imageCount
-         * @param {function} imagesLoadedCallback
+         * @param {Function} imagesLoadedCallback
          */
         this.loadImages = function (imagePath, imageCount, imagesLoadedCallback) {
             var self = this;
@@ -179,7 +176,6 @@ define(function () {
          * Return zero padded number
          *
          * @method zeroPad
-         * @protected
          * @param {String} subject
          * @param {Number} width
          * @param {Number} char
@@ -195,7 +191,6 @@ define(function () {
          * Sprite images
          *
          * @property images
-         * @protected
          * @type {Array}
          */
         this.images = [];
@@ -204,7 +199,6 @@ define(function () {
          * Mirrored images
          *
          * @property imagesMirror
-         * @protected
          * @type {Array}
          */
         this.imagesMirror = [];

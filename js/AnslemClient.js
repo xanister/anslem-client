@@ -27,6 +27,15 @@ define(['AnslemClientConfig', 'lib/NodeClient', 'lib/Sprite', 'lib/Stage', 'lib/
          */
         debugging: false,
         /**
+         * Error callback
+         *
+         * @event errorCallback
+         * @param {Object} response
+         */
+        errorCallback: function (response) {
+            AnslemClient.showMessage(response.message);
+        },
+        /**
          * Initialize the stage and server
          *
          * @method init
@@ -34,6 +43,7 @@ define(['AnslemClientConfig', 'lib/NodeClient', 'lib/Sprite', 'lib/Stage', 'lib/
          */
         init: function (readyCallback) {
             AnslemClient.readyCallback = readyCallback;
+            AnslemClient.nodeClient.errorCallback = AnslemClient.errorCallback;
             AnslemClient.nodeClient.start(function (response) {
                 var sprites = response.initialData.assets.sprites;
                 AnslemClient.stage.init(document.body, response.initialData.viewScale);
@@ -63,7 +73,7 @@ define(['AnslemClientConfig', 'lib/NodeClient', 'lib/Sprite', 'lib/Stage', 'lib/
         /**
          * Callback when ready
          *
-         * @method readyCallback
+         * @event readyCallback
          */
         readyCallback: function () {
             console.log("Ready");
@@ -95,6 +105,19 @@ define(['AnslemClientConfig', 'lib/NodeClient', 'lib/Sprite', 'lib/Stage', 'lib/
          * @type {Boolean}
          */
         running: false,
+        /**
+         * Show message to client
+         *
+         * @method showMessage
+         * @param {String} message
+         */
+        showMessage: function (message) {
+            var m = document.createElement("div");
+            m.className = "client-message";
+            m.innerHTML = message;
+            AnslemClient.stage.container.appendChild(m);
+            console.log(message);
+        },
         /**
          * Stage object
          *
