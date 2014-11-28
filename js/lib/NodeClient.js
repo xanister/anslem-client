@@ -130,6 +130,7 @@ define(['lib/socket.io'], function (io) {
             return {
                 keydown: {},
                 keyup: {},
+                message: false,
                 swipe: {},
                 touchstart: false,
                 touchend: false
