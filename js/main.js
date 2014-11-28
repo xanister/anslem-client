@@ -1,4 +1,4 @@
-/**
+/*
  * Setup requirejs
  */
 requirejs.config({
@@ -10,9 +10,8 @@ requirejs.config({
     }
 });
 
-/**
+/*
  * Start it up
- * @param {AnslemClient} AnslemClient
  */
 requirejs(
         ['./AnslemClient'],

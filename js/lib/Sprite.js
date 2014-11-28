@@ -1,59 +1,75 @@
+/**
+ * Image representation
+ *
+ * @module Stage
+ */
 define(function () {
     /**
      * Basic animation object
+     *
+     * @class Sprite
+     * @constructor
      * @param {String} imagePath
      * @param {Number} frameCount
      * @param {Number} frameSpeed
      * @param {function} imagesLoadedCallback
      * @param {Boolean} singleImage
-     * @returns {Sprite}
      */
     function Sprite(imagePath, frameCount, frameSpeed, imagesLoadedCallback, singleImage) {
         /**
          * Count of images currently loading
-         * @access static
-         * @var {Number}
+         *
+         * @property imagesLoading
+         * @static
+         * @type {Number}
          */
         Sprite.imagesLoading = 0;
 
         /**
          * Number of frames
-         * @access public
-         * @var {Number}
+         *
+         * @property frameCount
+         * @type {Number}
          */
         this.frameCount = frameCount || 0;
 
         /**
          * Default framespeed
-         * @access public
-         * @var {Number}
+         *
+         * @property frameSpeed
+         * @type {Number}
          */
         this.frameSpeed = frameSpeed || 0;
 
         /**
          * Height, read only
-         * @access public
-         * @var {Number}
+         *
+         * @property height
+         * @type {Number}
          */
         this.height = 0;
 
         /**
          * Single sheet sprite flag
-         * @access public
-         * @var {Boolean}
+         *
+         * @property singleImage
+         * @type {Boolean}
          */
         this.singleImage = singleImage || false;
 
         /**
          * Width, read only
-         * @access public
-         * @var {Number}
+         *
+         * @property width
+         * @type {Number}
          */
         this.width = 0;
 
         /**
          * Draw sprite at target location
-         * @param {Canvas.context} ctx
+         *
+         * @method draw
+         * @param {Object} ctx
          * @param {Number} frame
          * @param {Number} tarX
          * @param {Number} tarY
@@ -73,7 +89,9 @@ define(function () {
         /**
          * Draw sprite at target location with
          * extra options
-         * @param {Canvas.context} ctx
+         *
+         * @method drawExt
+         * @param {Object} ctx
          * @param {Number} frame
          * @param {Number} tarX
          * @param {Number} tarY
@@ -98,7 +116,9 @@ define(function () {
 
         /**
          * Callback for when frame has loaded
-         * @access protected
+         *
+         * @method imageLoaded
+         * @protected
          */
         this.imageLoaded = function () {
             this.imageLoaded.count = this.imageLoaded.count ? this.imageLoaded.count + 1 : 1;
@@ -108,7 +128,9 @@ define(function () {
 
         /**
          * Callback when all images have loaded
-         * @access protected
+         *
+         * @method imagesLoaded
+         * @protected
          */
         this.imagesLoaded = function () {
             this.width = this.singleImage ? this.images[0].width / this.frameCount : this.images[0].width;
@@ -118,7 +140,9 @@ define(function () {
 
         /**
          * Loads images for sprite
-         * @access protected
+         *
+         * @method loadImages
+         * @protected
          * @param {String} imagePath
          * @param {Number} imageCount
          * @param {function} imagesLoadedCallback
@@ -153,11 +177,13 @@ define(function () {
 
         /**
          * Return zero padded number
-         * @access protected
+         *
+         * @method zeroPad
+         * @protected
          * @param {String} subject
          * @param {Number} width
          * @param {Number} char
-         * @returns {String}
+         * @return {String}
          */
         this.zeroPad = function (subject, width, char) {
             char = char || '0';
@@ -167,11 +193,25 @@ define(function () {
 
         /**
          * Sprite images
-         * @access public
-         * @var {Array}
+         *
+         * @property images
+         * @protected
+         * @type {Array}
          */
         this.images = [];
+
+        /**
+         * Mirrored images
+         *
+         * @property imagesMirror
+         * @protected
+         * @type {Array}
+         */
         this.imagesMirror = [];
+
+        /*
+         * Initialize the images
+         */
         this.loadImages(imagePath, this.singleImage || !frameCount ? 1 : frameCount, imagesLoadedCallback || false);
     }
 

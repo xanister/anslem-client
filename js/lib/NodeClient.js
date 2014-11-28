@@ -1,62 +1,80 @@
+/**
+ * Node client
+ *
+ * @module NodeClient
+ * @requires socket.io
+ */
 define(['lib/socket.io'], function (io) {
     /**
      * NodeClient
+     *
+     * @class NodeClient
+     * @constructor
      * @param {String} serverAddress
-     * @returns {NodeClient}
      */
     function NodeClient(serverAddress) {
         /**
          * Touch distance required to register a swipe
-         * @access static
-         * @var {Number}
+         *
+         * @property swipeDistance
+         * @static
+         * @type {Number}
          */
         NodeClient.swipeDistance = 50;
 
         /**
          * IO socket
-         * @access private
-         * @var {Object}
+         *
+         * @property socket
+         * @private
+         * @type {Object}
          */
         var socket;
 
         /**
          * Connected flag
-         * @access public
-         * @var {Boolean}
+         *
+         * @property connected
+         * @type {Boolean}
          */
         this.connected = false;
 
         /**
          * Data synced to server
-         * @access public
-         * @var {Object}
+         *
+         * @property data
+         * @type {Object}
          */
         this.data = {packet: []};
 
         /**
          * Client id
-         * @access public
-         * @var {String}
+         *
+         * @property
+         * @type {String}
          */
         this.id = false;
 
         /**
          * Client inputs
-         * @access public
-         * @var {Object}
+         *
+         * @property inputs
+         * @type {Object}
          */
         this.inputs = {keyboard: {}, touches: {}, events: {}};
 
         /**
          * Server address
-         * @access public
-         * @var {String}
+         *
+         * @property serverAddress
+         * @type {String}
          */
         this.serverAddress = serverAddress;
 
         /**
          * Connection callback
-         * @access public
+         *
+         * @method connectCallback
          * @param {Object} response
          */
         this.connectCallback = function (response) {
@@ -65,7 +83,8 @@ define(['lib/socket.io'], function (io) {
 
         /**
          * Disconnect callback
-         * @access public
+         *
+         * @method disconnectCallback
          */
         this.disconnectCallback = function () {
             this.log("Connection closed");
@@ -73,7 +92,8 @@ define(['lib/socket.io'], function (io) {
 
         /**
          * Error callback
-         * @access public
+         *
+         * @method errorCallback
          * @param {Object} response
          */
         this.errorCallback = function (response) {
@@ -82,7 +102,8 @@ define(['lib/socket.io'], function (io) {
 
         /**
          * Message recieved callback
-         * @access public
+         *
+         * @method messageCallback
          * @param {String} response
          */
         this.messageCallback = function (response) {
@@ -91,13 +112,15 @@ define(['lib/socket.io'], function (io) {
 
         /**
          * Update data callback
-         * @access public
+         *
+         * @method messageCallback
          */
         this.updateCallback = false;
 
         /**
          * Update server with client info
-         * @access public
+         *
+         * @method infoUpdate
          * @param {Object} info
          */
         NodeClient.prototype.infoUpdate = function (info) {
@@ -106,7 +129,8 @@ define(['lib/socket.io'], function (io) {
 
         /**
          * Update server with client inputs
-         * @access public
+         *
+         * @method inputUpdate
          * @param {Object} inputs
          */
         NodeClient.prototype.inputUpdate = function (inputs) {
@@ -116,6 +140,8 @@ define(['lib/socket.io'], function (io) {
 
         /**
          * Basic logging
+         *
+         * @method log
          * @param {String} message
          */
         NodeClient.prototype.log = function (message) {
@@ -124,7 +150,9 @@ define(['lib/socket.io'], function (io) {
 
         /**
          * Generate empty event object
-         * @returns {Object}
+         *
+         * @method getEmptyInputEvents
+         * @return {Object}
          */
         NodeClient.prototype.getEmptyInputEvents = function () {
             return {
@@ -139,7 +167,8 @@ define(['lib/socket.io'], function (io) {
 
         /**
          * Client screen width
-         * @access public
+         *
+         * @method getClientScreenWidth
          * @return {Number}
          */
         this.getClientScreenWidth = function () {
@@ -148,7 +177,8 @@ define(['lib/socket.io'], function (io) {
 
         /**
          * Client screen height
-         * @access public
+         *
+         * @method getClientScreenHeight
          * @return {Number}
          */
         this.getClientScreenHeight = function () {
@@ -157,6 +187,8 @@ define(['lib/socket.io'], function (io) {
 
         /**
          * Open connection and bind server/input callback events
+         *
+         * @method start
          * @param {function} connectCallback
          */
         NodeClient.prototype.start = function (connectCallback) {
@@ -171,7 +203,9 @@ define(['lib/socket.io'], function (io) {
             var nodeClient = this;
 
             /**
-             * On connection
+             * On connect
+             *
+             * @event connection
              * @param {Object} response expects {message: 'a message', clientId: 'aclientid', initialData: {someDataObject}}
              */
             socket.on("connection", function (response) {
@@ -184,6 +218,8 @@ define(['lib/socket.io'], function (io) {
 
             /**
              * On disconnect
+             *
+             * @event disconnect
              */
             socket.on('disconnect', function () {
                 nodeClient.connected = false;
@@ -194,6 +230,8 @@ define(['lib/socket.io'], function (io) {
 
             /**
              * On error
+             *
+             * @event error
              * @param {Object} response
              */
             socket.on('error', function (response) {
@@ -205,6 +243,8 @@ define(['lib/socket.io'], function (io) {
 
             /**
              * On message
+             *
+             * @event message
              * @param {String} response
              */
             socket.on('message', function (response) {
@@ -214,6 +254,8 @@ define(['lib/socket.io'], function (io) {
 
             /**
              * On update
+             *
+             * @event update
              * @param {Object} response
              */
             socket.on("update", function (response) {
@@ -224,6 +266,8 @@ define(['lib/socket.io'], function (io) {
 
             /**
              * Update server with new screen size on orientation change
+             *
+             * @event orientationchange
              */
             window.addEventListener('orientationchange', function () {
                 nodeClient.infoUpdate({screenWidth: nodeClient.getClientScreenWidth(), screenHeight: nodeClient.getClientScreenHeight()});
@@ -231,6 +275,8 @@ define(['lib/socket.io'], function (io) {
 
             /**
              * Update server with new screen size on resize
+             *
+             * @event resize
              */
             window.addEventListener('resize', function () {
                 nodeClient.infoUpdate({screenWidth: nodeClient.getClientScreenWidth(), screenHeight: nodeClient.getClientScreenHeight()});
@@ -238,6 +284,8 @@ define(['lib/socket.io'], function (io) {
 
             /**
              * Client keydown
+             *
+             * @event keydown
              * @param {Event} event
              */
             document.addEventListener("keydown", function (event) {
@@ -251,6 +299,8 @@ define(['lib/socket.io'], function (io) {
 
             /**
              * Client keyup
+             *
+             * @event keyup
              * @param {Event} event
              */
             document.addEventListener("keyup", function (event) {
@@ -262,6 +312,8 @@ define(['lib/socket.io'], function (io) {
 
             /**
              * Client touchstart
+             *
+             * @event touchstart
              * @param {Event} event
              */
             document.addEventListener("touchstart", function (event) {
@@ -285,6 +337,8 @@ define(['lib/socket.io'], function (io) {
 
             /**
              * Client touchmove, possibly dangerous to run over network
+             *
+             * @event touchmove
              * @param {Event} event
              */
             document.addEventListener("touchmove", function (event) {
@@ -298,6 +352,8 @@ define(['lib/socket.io'], function (io) {
 
             /**
              * Client touchend
+             *
+             * @event touchend
              * @param {Event} event
              */
             document.addEventListener("touchend", function (event) {

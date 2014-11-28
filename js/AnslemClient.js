@@ -1,27 +1,48 @@
-define(['anslemClientConfig', 'lib/NodeClient', 'lib/Stage', 'lib/Sprite', 'lib/howler'], function (anslemClientConfig, NodeClient, Stage, Sprite) {
+/**
+ * Connects to server and draws to stage
+ *
+ * @module Anslem
+ * @requires AnslemClientConfig, NodeClient, Sprite, Stage, howler
+ */
+define(['AnslemClientConfig', 'lib/NodeClient', 'lib/Sprite', 'lib/Stage', 'lib/howler'], function (AnslemClientConfig, NodeClient, Sprite, Stage) {
     /**
      * Anslem game client wrapper
-     * @type Object
+     *
+     * @class AnslemClient
+     * @static
      */
     var AnslemClient = {
+        /**
+         * Data synced from server
+         *
+         * @property data
+         * @type {Object}
+         */
         data: {},
+        /**
+         * Debugging flag
+         *
+         * @property debugging
+         * @type {Boolean}
+         */
         debugging: false,
-        updatePlayerView: function () {
-
-        },
+        /**
+         * Initialize the stage and server
+         *
+         * @method init
+         * @param {Function} readyCallback
+         */
         init: function (readyCallback) {
             AnslemClient.readyCallback = readyCallback;
             AnslemClient.nodeClient.start(function (response) {
                 var sprites = response.initialData.assets.sprites;
                 AnslemClient.stage.init(document.body, response.initialData.viewScale);
-                AnslemClient.viewWidth = AnslemClient.stage.canvas.width;
-                AnslemClient.viewHeight = AnslemClient.stage.canvas.height;
                 AnslemClient.stage.loadAssets(
                         Object.keys(sprites).length,
                         function (assetLoadedCallback) {
                             for (var index in sprites) {
                                 var s = sprites[index];
-                                AnslemClient.stage.sprites[index] = new Sprite(anslemClientConfig.assetsUrl + s.imagePath, s.frameCount, s.frameSpeed, assetLoadedCallback, s.singleImage);
+                                AnslemClient.stage.sprites[index] = new Sprite(AnslemClientConfig.assetsUrl + s.imagePath, s.frameCount, s.frameSpeed, assetLoadedCallback, s.singleImage);
                             }
                             AnslemClient.stage.sounds = {};
                         },
@@ -32,10 +53,27 @@ define(['anslemClientConfig', 'lib/NodeClient', 'lib/Stage', 'lib/Sprite', 'lib/
                 );
             });
         },
-        nodeClient: new NodeClient(anslemClientConfig.serverUrl),
+        /**
+         * Node client object
+         *
+         * @property nodeClient
+         * @type {NodeClient}
+         */
+        nodeClient: new NodeClient(AnslemClientConfig.serverUrl),
+        /**
+         * Callback when ready
+         *
+         * @method readyCallback
+         */
         readyCallback: function () {
             console.log("Ready");
         },
+        /**
+         * Render the scene
+         *
+         * @method render
+         * @param {Object} ctx
+         */
         render: function (ctx) {
             var packet = AnslemClient.data.packet;
             for (var index in packet.contents) {
@@ -49,36 +87,39 @@ define(['anslemClientConfig', 'lib/NodeClient', 'lib/Stage', 'lib/Sprite', 'lib/
                     sprite.draw(ctx, e.sprite.frame, e.x - (e.width / 2) - packet.viewX, e.y - (e.height / 2) - packet.viewY, e.sprite.mirror);
                 }
             }
-            if (AnslemClient.debugging)
-                AnslemClient.renderDebug(ctx);
         },
-        renderDebug: function (ctx) {
-            var packet = AnslemClient.data.packet;
-            for (var index in packet.contents) {
-                var e = packet.contents[index];
-                ctx.beginPath();
-                ctx.fillStyle = 'red';
-                ctx.arc(e.x - packet.viewX, e.y - packet.viewY, 5, 0, 2 * Math.PI, false);
-                ctx.fill();
-                ctx.rect(e.x - (e.width / 2) - packet.viewX, e.y - (e.height / 2) - packet.viewY, e.width, e.height);
-                ctx.stroke();
-            }
-            ctx.font = (30 * AnslemClient.stage.viewScale) + "px Georgia";
-            ctx.fillText("FPS: " + AnslemClient.stage.currentFps, 50, 50);
-        },
+        /**
+         * Running flag
+         *
+         * @property running
+         * @type {Boolean}
+         */
         running: false,
+        /**
+         * Stage object
+         *
+         * @property stage
+         * @type {Stage}
+         */
         stage: new Stage(),
+        /**
+         * Start it up
+         *
+         * @method start
+         */
         start: function () {
             AnslemClient.running = true;
             AnslemClient.stage.start(AnslemClient.render);
         },
+        /**
+         * Stop drawing
+         *
+         * @method stop
+         */
         stop: function () {
             AnslemClient.running = false;
             AnslemClient.stage.stop();
-        },
-        targetFps: 30,
-        viewWidth: Math.max(document.documentElement.clientWidth, window.innerWidth || 0),
-        viewHeight: Math.max(document.documentElement.clientHeight, window.innerHeight || 0)
+        }
     };
 
     return AnslemClient;

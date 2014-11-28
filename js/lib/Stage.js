@@ -1,61 +1,76 @@
+/**
+ * Canvas game drawing engine
+ *
+ * @module Stage
+ */
 define(function () {
     /**
      * Basic stage for drawing to canvas
-     * @returns {Stage}
+     *
+     * @class Stage
+     * @constructor
      */
     function Stage() {
         /**
          * DOM canvas element to draw to
-         * @access public
+         *
+         * @property canvas
          * @type {Element}
          */
         this.canvas = false;
 
         /**
          * Dom element container
-         * @access public
-         * @var {Element}
+         *
+         * @property container
+         * @type {Element}
          */
         this.container = false;
 
         /**
          * Current calculated fps
-         * @access public
+         *
+         * @property currentFps
          * @type {Number}
          */
         this.currentFps = 0;
 
         /**
          * Running flag
-         * @access public
+         *
+         * @property running
          * @type {Boolean}
          */
         this.running = false;
 
         /**
          * Available sounds
-         * @access public
+         *
+         * @property sounds
          * @type {Array}
          */
         this.sounds = [];
 
         /**
          * Available sprites
-         * @access public
+         *
+         * @property sprites
          * @type {Array}
          */
         this.sprites = [];
 
         /**
          * Percent to scale the stage
-         * @access public
+         *
+         * @property viewScale
          * @type {Number}
          */
         this.viewScale = 1;
 
         /**
          * Bind dom events
-         * @access protected
+         *
+         * @method bindEvents
          */
         this.bindEvents = function () {
             var stage = this;
@@ -69,7 +84,8 @@ define(function () {
 
         /**
          * Create and initialize canvas element
-         * @access public
+         *
+         * @method init
          * @param {Element} container
          * @param {Number} viewScale
          */
@@ -91,6 +107,8 @@ define(function () {
         /**
          * Basic asyncronous project specific asset
          * loader with callback
+         *
+         * @method loadAssets
          * @param {Number} assetCount
          * @param {Function} loaderFunction
          * @param {Function} assetsLoadedCallback
@@ -106,7 +124,8 @@ define(function () {
 
         /**
          * Responsive view
-         * @access public
+         *
+         * @method setViewResponsive
          */
         Stage.prototype.setViewResponsive = function () {
             this.canvas.width = Math.max(document.documentElement.clientWidth, window.innerWidth || 0) * this.viewScale;
@@ -115,8 +134,9 @@ define(function () {
 
         /**
          * Start render loop
-         * @param {function} renderCallback
-         * @access public
+         *
+         * @method start
+         * @param {Function} renderCallback
          */
         Stage.prototype.start = function (renderCallback) {
             this.running = true;
@@ -137,7 +157,8 @@ define(function () {
 
         /**
          * Stop the render loop
-         * @access public
+         *
+         * @method stop
          */
         Stage.prototype.stop = function () {
             this.running = false;
