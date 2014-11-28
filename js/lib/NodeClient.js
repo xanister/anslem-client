@@ -111,6 +111,7 @@ define(['lib/socket.io'], function (io) {
          */
         NodeClient.prototype.inputUpdate = function (inputs) {
             socket.emit("clientInput", inputs);
+            this.inputs.events = this.getEmptyInputEvents();
         };
 
         /**
@@ -240,10 +241,11 @@ define(['lib/socket.io'], function (io) {
              */
             document.addEventListener("keydown", function (event) {
                 var keyPressed = String.fromCharCode(event.keyCode);
+                if (nodeClient.inputs.keyboard[keyPressed])
+                    return false;
                 nodeClient.inputs.keyboard[keyPressed] = true;
                 nodeClient.inputs.events.keydown[keyPressed] = true;
                 nodeClient.inputUpdate.call(nodeClient, nodeClient.inputs);
-                nodeClient.inputs.events.keydown[keyPressed] = false;
             });
 
             /**
@@ -255,7 +257,6 @@ define(['lib/socket.io'], function (io) {
                 nodeClient.inputs.keyboard[keyPressed] = false;
                 nodeClient.inputs.events.keyup[keyPressed] = true;
                 nodeClient.inputUpdate.call(nodeClient, nodeClient.inputs);
-                nodeClient.inputs.events.keyup[keyPressed] = false;
             });
 
             /**
@@ -279,7 +280,6 @@ define(['lib/socket.io'], function (io) {
                 }
 
                 nodeClient.inputUpdate.call(nodeClient, nodeClient.inputs);
-                nodeClient.inputs.events.touchstart = false;
             });
 
             /**
@@ -309,9 +309,9 @@ define(['lib/socket.io'], function (io) {
                     var swipeDirection = swipeV || swipeH || false;
                     if (swipeDirection) {
                         nodeClient.inputs.events.swipe[swipeDirection] = {
+                            dir: swipeDirection,
                             distX: swipeDistX,
                             distY: swipeDistY,
-                            dir: swipeDirection,
                             x: event.changedTouches[index].clientX,
                             y: event.changedTouches[index].clientY
                         };
@@ -324,8 +324,6 @@ define(['lib/socket.io'], function (io) {
                     };
                 }
                 nodeClient.inputUpdate.call(nodeClient, nodeClient.inputs);
-                nodeClient.inputs.events.touchend = false;
-                nodeClient.inputs.events.swipe = {};
             });
         };
     }
