@@ -4,7 +4,11 @@ define(['anslemClientConfig', 'lib/NodeClient', 'lib/Stage', 'lib/Sprite', 'lib/
      * @type Object
      */
     var AnslemClient = {
+        data: {},
         debugging: false,
+        updatePlayerView: function () {
+
+        },
         init: function (readyCallback) {
             AnslemClient.readyCallback = readyCallback;
             AnslemClient.nodeClient.start(function (response) {
@@ -22,7 +26,7 @@ define(['anslemClientConfig', 'lib/NodeClient', 'lib/Stage', 'lib/Sprite', 'lib/
                             AnslemClient.stage.sounds = {};
                         },
                         function () {
-                            AnslemClient.scene = AnslemClient.nodeClient.data;
+                            AnslemClient.data = AnslemClient.nodeClient.data;
                             AnslemClient.readyCallback();
                         }
                 );
@@ -33,12 +37,12 @@ define(['anslemClientConfig', 'lib/NodeClient', 'lib/Stage', 'lib/Sprite', 'lib/
             console.log("Ready");
         },
         render: function (ctx) {
-            var packet = AnslemClient.scene.packet;
+            var packet = AnslemClient.data.packet;
             for (var index in packet.contents) {
                 var e = packet.contents[index];
                 var sprite = AnslemClient.stage.sprites[e.sprite.image];
                 if (e.sprite.tileX) {
-                    for (var xx = -Math.floor((packet.viewX * e.sprite.scrollSpeed) % e.width); xx < AnslemClient.viewWidth; xx = xx + e.width) {
+                    for (var xx = -Math.floor((packet.viewX * e.sprite.scrollSpeed) % e.width); xx < AnslemClient.stage.canvas.width; xx = xx + e.width) {
                         sprite.draw(ctx, e.sprite.frame, xx, e.y - (e.height / 2) - packet.viewY);
                     }
                 } else {
@@ -49,7 +53,7 @@ define(['anslemClientConfig', 'lib/NodeClient', 'lib/Stage', 'lib/Sprite', 'lib/
                 AnslemClient.renderDebug(ctx);
         },
         renderDebug: function (ctx) {
-            var packet = AnslemClient.scene.packet;
+            var packet = AnslemClient.data.packet;
             for (var index in packet.contents) {
                 var e = packet.contents[index];
                 ctx.beginPath();
@@ -63,7 +67,6 @@ define(['anslemClientConfig', 'lib/NodeClient', 'lib/Stage', 'lib/Sprite', 'lib/
             ctx.fillText("FPS: " + AnslemClient.stage.currentFps, 50, 50);
         },
         running: false,
-        scene: {},
         stage: new Stage(),
         start: function () {
             AnslemClient.running = true;

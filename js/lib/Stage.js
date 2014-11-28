@@ -60,7 +60,10 @@ define(function () {
         this.bindEvents = function () {
             var stage = this;
             window.addEventListener('orientationchange', function () {
-                this.setViewResponsive.call(stage);
+                stage.setViewResponsive.call(stage);
+            });
+            window.addEventListener('resize', function () {
+                stage.setViewResponsive.call(stage);
             });
         };
 
@@ -106,7 +109,6 @@ define(function () {
          * @access public
          */
         Stage.prototype.setViewResponsive = function () {
-            // TODO: Scale based upon orientation and available space
             this.canvas.width = Math.max(document.documentElement.clientWidth, window.innerWidth || 0) * this.viewScale;
             this.canvas.height = Math.max(document.documentElement.clientHeight, window.innerHeight || 0) * this.viewScale;
         };

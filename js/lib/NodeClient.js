@@ -20,20 +20,6 @@ define(['lib/socket.io'], function (io) {
         var socket;
 
         /**
-         * Client screen width
-         * @access public
-         * @var {Number}
-         */
-        this.clientScreenWidth = Math.max(document.documentElement.clientWidth, window.innerWidth || 0);
-
-        /**
-         * Client screen height
-         * @access public
-         * @var {Number}
-         */
-        this.clientScreenHeight = Math.max(document.documentElement.clientWidth, window.innerWidth || 0);
-
-        /**
          * Connected flag
          * @access public
          * @var {Boolean}
@@ -110,6 +96,15 @@ define(['lib/socket.io'], function (io) {
         this.updateCallback = false;
 
         /**
+         * Update server with client info
+         * @access public
+         * @param {Object} info
+         */
+        NodeClient.prototype.infoUpdate = function (info) {
+            socket.emit("clientInfo", info);
+        };
+
+        /**
          * Update server with client inputs
          * @access public
          * @param {Object} inputs
@@ -141,6 +136,24 @@ define(['lib/socket.io'], function (io) {
         };
 
         /**
+         * Client screen width
+         * @access public
+         * @return {Number}
+         */
+        this.getClientScreenWidth = function () {
+            return Math.max(document.documentElement.clientWidth, window.innerWidth || 0);
+        };
+
+        /**
+         * Client screen height
+         * @access public
+         * @return {Number}
+         */
+        this.getClientScreenHeight = function () {
+            return Math.max(document.documentElement.clientHeight, window.innerHeight || 0);
+        };
+
+        /**
          * Open connection and bind server/input callback events
          * @param {function} connectCallback
          */
@@ -150,7 +163,7 @@ define(['lib/socket.io'], function (io) {
 
             // Open connection
             this.connectCallback = connectCallback || this.connectCallback;
-            socket = io.connect(this.serverAddress, {'sync disconnect on unload': true, query: "screenSize=" + this.clientScreenWidth + "," + this.clientScreenHeight});
+            socket = io.connect(this.serverAddress, {'sync disconnect on unload': true, query: "screenSize=" + this.getClientScreenWidth() + "," + this.getClientScreenHeight()});
 
             // Bind events
             var nodeClient = this;
@@ -205,6 +218,20 @@ define(['lib/socket.io'], function (io) {
                 nodeClient.data.packet = response.packet;
                 if (nodeClient.updateCallback)
                     nodeClient.updateCallback.call(nodeClient, response);
+            });
+
+            /**
+             * Update server with new screen size on orientation change
+             */
+            window.addEventListener('orientationchange', function () {
+                nodeClient.infoUpdate({screenWidth: nodeClient.getClientScreenWidth(), screenHeight: nodeClient.getClientScreenHeight()});
+            });
+
+            /**
+             * Update server with new screen size on resize
+             */
+            window.addEventListener('resize', function () {
+                nodeClient.infoUpdate({screenWidth: nodeClient.getClientScreenWidth(), screenHeight: nodeClient.getClientScreenHeight()});
             });
 
             /**
