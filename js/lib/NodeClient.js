@@ -217,6 +217,18 @@ define(['lib/socket.io'], function (io) {
             });
 
             /**
+             * Connection error
+             *
+             * @event connect_error
+             * @param {Object} response
+             */
+            socket.on('connect_error', function (response) {
+                nodeClient.connected = false;
+                socket.disconnect();
+                console.log('Error connecting to server', response);
+            });
+
+            /**
              * On disconnect
              *
              * @event disconnect
