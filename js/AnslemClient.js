@@ -43,10 +43,10 @@ define(['anslemClientConfig', 'lib/NodeClient', 'lib/Stage', 'lib/Sprite', 'lib/
                 var sprite = AnslemClient.stage.sprites[e.sprite.image];
                 if (e.sprite.tileX) {
                     for (var xx = -Math.floor((packet.viewX * e.sprite.scrollSpeed) % e.width); xx < AnslemClient.stage.canvas.width; xx = xx + e.width) {
-                        sprite.draw(ctx, e.sprite.frame, xx, e.y - (e.height / 2) - packet.viewY);
+                        sprite.draw(ctx, e.sprite.frame, xx, e.y - (e.height / 2) - packet.viewY, e.sprite.mirror);
                     }
                 } else {
-                    sprite.draw(ctx, e.sprite.frame, e.x - (e.width / 2) - packet.viewX, e.y - (e.height / 2) - packet.viewY);
+                    sprite.draw(ctx, e.sprite.frame, e.x - (e.width / 2) - packet.viewX, e.y - (e.height / 2) - packet.viewY, e.sprite.mirror);
                 }
             }
             if (AnslemClient.debugging)

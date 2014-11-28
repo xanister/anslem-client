@@ -57,11 +57,16 @@ define(function () {
          * @param {Number} frame
          * @param {Number} tarX
          * @param {Number} tarY
+         * @param {Boolean} mirror
          */
-        Sprite.prototype.draw = function (ctx, frame, tarX, tarY) {
+        Sprite.prototype.draw = function (ctx, frame, tarX, tarY, mirror) {
             frame = Math.floor(frame || 0);
-            var xOffset = this.singleImage ? Math.floor(srcX + (frame * this.width)) : 0;
-            var img = this.singleImage ? this.images[0] : this.images[frame];
+            var xOffset = this.singleImage ? frame * this.width : 0;
+            var img;
+            if (mirror)
+                img = this.singleImage ? this.imagesMirror[0] : this.imagesMirror[frame];
+            else
+                img = this.singleImage ? this.images[0] : this.images[frame];
             ctx.drawImage(img, xOffset, 0, this.width, this.height, tarX, tarY, this.width, this.height);
         };
 
@@ -72,43 +77,23 @@ define(function () {
          * @param {Number} frame
          * @param {Number} tarX
          * @param {Number} tarY
-         * @param {Number} width
-         * @param {Number} height
+         * @param {Number} tarWidth
+         * @param {Number} tarHeight
          * @param {Number} srcX
          * @param {Number} srcY
          * @param {Number} srcWidth
          * @param {Number} srcHeight
+         * @param {Boolean} mirror
          */
-        Sprite.prototype.drawExt = function (ctx, frame, tarX, tarY, width, height, srcX, srcY, srcWidth, srcHeight) {
+        Sprite.prototype.drawExt = function (ctx, frame, tarX, tarY, tarWidth, tarHeight, srcX, srcY, srcWidth, srcHeight, mirror) {
             frame = Math.floor(frame || 0);
-            width = width || this.width;
-            height = height || this.height;
-            srcX = srcX || 0;
-            if (this.singleImage)
-                srcX = Math.floor(srcX + (frame * this.width));
-            srcY = srcY || 0;
-            srcWidth = srcWidth || this.width;
-            srcHeight = srcHeight || this.height;
-            var img = this.singleImage ? this.images[0] : this.images[frame];
-            ctx.drawImage(img, srcX, srcY, srcWidth, srcHeight, tarX, tarY, width, height);
-        };
-
-        /**
-         * Tile sprite in given area
-         * @param {Canvas.context} ctx
-         * @param {Number} frame
-         * @param {Number} tarX
-         * @param {Number} tarY
-         * @param {Number} tiledWidth
-         * @param {Number} tiledHeight
-         */
-        Sprite.prototype.drawTiled = function (ctx, frame, tarX, tarY, tiledWidth, tiledHeight) {
-            var img = this.singleImage ? this.images[0] : this.images[frame];
-            for (var x = tarX; x < tiledWidth; x += this.width) {
-                for (var y = tarY; y < tiledHeight; y += this.height) {
-                    ctx.drawImage(img, 0, 0, this.width, this.height, x, y, this.width, this.height);
-                }
-            }
+            var xOffset = this.singleImage ? srcX + (frame * this.width) : 0;
+            var img;
+            if (mirror)
+                img = this.singleImage ? this.imagesMirror[0] : this.imagesMirror[frame];
+            else
+                img = this.singleImage ? this.images[0] : this.images[frame];
+            ctx.drawImage(img, xOffset, srcY, srcWidth, srcHeight, tarX, tarY, tarWidth, tarHeight);
         };
 
         /**
@@ -137,22 +122,34 @@ define(function () {
          * @param {String} imagePath
          * @param {Number} imageCount
          * @param {function} imagesLoadedCallback
-         * @returns {Array}
          */
         this.loadImages = function (imagePath, imageCount, imagesLoadedCallback) {
-            var images = [];
             var self = this;
             for (var i = 0; i < imageCount; i++) {
                 var img = new Image();
+                img.setAttribute('crossOrigin', 'anonymous');
                 img.src = imagePath + this.zeroPad(i, 3) + '.png';
                 img.addEventListener("load", function () {
+                    var c = document.createElement('canvas');
+                    c.width = this.width;
+                    c.height = this.height;
+
+                    var ctx = c.getContext('2d');
+                    ctx.scale(-1, 1);
+                    ctx.drawImage(this, -this.width, 0);
+                    ctx.restore();
+
+                    var imgMirror = new Image();
+                    imgMirror.src = c.toDataURL();
+
+                    self.imagesMirror.push(imgMirror);
                     self.imageLoaded.call(self);
                 });
-                images.push(img);
+                this.images.push(img);
             }
             this.imagesLoadedCallback = imagesLoadedCallback || this.imagesLoadedCallback;
-            return images;
         };
+
 
         /**
          * Return zero padded number
@@ -173,7 +170,9 @@ define(function () {
          * @access public
          * @var {Array}
          */
-        this.images = this.loadImages(imagePath, this.singleImage || !frameCount ? 1 : frameCount, imagesLoadedCallback || false);
+        this.images = [];
+        this.imagesMirror = [];
+        this.loadImages(imagePath, this.singleImage || !frameCount ? 1 : frameCount, imagesLoadedCallback || false);
     }
 
     return Sprite;
