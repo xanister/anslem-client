@@ -14,14 +14,13 @@ requirejs.config({
  * Start it up
  */
 requirejs(
-        ['./AnslemClient'],
-        function (AnslemClient) {
+        ['./AnslemClient', './AnslemClientConfig'],
+        function (AnslemClient, AnslemClientConfig) {
             // Attach to window for debugging
-            window.ac = AnslemClient;
+            console.log(AnslemClientConfig.serverUrl);
+            window.ac = new AnslemClient(AnslemClientConfig.serverUrl);
 
             // Initialize and go ahead and start when ready
-            AnslemClient.init(function () {
-                AnslemClient.start();
-            });
+            window.ac.start();
         }
 );

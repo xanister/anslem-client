@@ -9,141 +9,115 @@ define(['AnslemClientConfig', 'lib/NodeClient', 'lib/Sprite', 'lib/Stage', 'lib/
      * Anslem game client wrapper
      *
      * @class AnslemClient
-     * @static
+     * @constructor
+     * @param {String} serverAddress
      */
-    var AnslemClient = {
-        /**
-         * Data synced from server
-         *
-         * @property data
-         * @type {Object}
-         */
-        data: {},
+    function AnslemClient(serverAddress) {
+        NodeClient.call(this);
+        var self = this;
         /**
          * Debugging flag
          *
          * @property debugging
          * @type {Boolean}
          */
-        debugging: false,
+        this.debugging = false;
+
         /**
-         * Error callback
+         * Server address
          *
-         * @event errorCallback
-         * @param {Object} response
+         * @property serverAddress
+         * @type {String}
          */
-        errorCallback: function (response) {
-            AnslemClient.showMessage(response.message);
-        },
-        /**
-         * Initialize the stage and server
-         *
-         * @method init
-         * @param {Function} readyCallback
-         */
-        init: function (readyCallback) {
-            AnslemClient.readyCallback = readyCallback;
-            AnslemClient.nodeClient.errorCallback = AnslemClient.errorCallback;
-            AnslemClient.nodeClient.start(function (response) {
-                var sprites = response.initialData.assets.sprites;
-                AnslemClient.stage.init(document.body, response.initialData.viewScale);
-                AnslemClient.stage.loadAssets(
-                        Object.keys(sprites).length,
-                        function (assetLoadedCallback) {
-                            for (var index in sprites) {
-                                var s = sprites[index];
-                                AnslemClient.stage.sprites[index] = new Sprite(AnslemClientConfig.assetsUrl + s.imagePath, s.frameCount, s.frameSpeed, assetLoadedCallback, s.singleImage);
-                            }
-                            AnslemClient.stage.sounds = {};
-                        },
-                        function () {
-                            AnslemClient.data = AnslemClient.nodeClient.data;
-                            AnslemClient.readyCallback();
-                        }
-                );
-            });
-        },
-        /**
-         * Node client object
-         *
-         * @property nodeClient
-         * @type {NodeClient}
-         */
-        nodeClient: new NodeClient(AnslemClientConfig.serverUrl),
-        /**
-         * Callback when ready
-         *
-         * @event readyCallback
-         */
-        readyCallback: function () {
-            console.log("Ready");
-        },
-        /**
-         * Render the scene
-         *
-         * @method render
-         * @param {Object} ctx
-         */
-        render: function (ctx) {
-            var packet = AnslemClient.data.packet;
-            for (var index in packet.contents) {
-                var e = packet.contents[index];
-                var sprite = AnslemClient.stage.sprites[e.sprite.image];
-                if (e.sprite.tileX) {
-                    for (var xx = -Math.floor((packet.viewX * e.sprite.scrollSpeed) % e.width); xx < AnslemClient.stage.canvas.width; xx = xx + e.width) {
-                        sprite.draw(ctx, e.sprite.frame, xx, e.y - (e.height / 2) - packet.viewY, e.sprite.mirror);
-                    }
-                } else {
-                    sprite.draw(ctx, e.sprite.frame, e.x - (e.width / 2) - packet.viewX, e.y - (e.height / 2) - packet.viewY, e.sprite.mirror);
-                }
-            }
-        },
-        /**
-         * Running flag
-         *
-         * @property running
-         * @type {Boolean}
-         */
-        running: false,
-        /**
-         * Show message to client
-         *
-         * @method showMessage
-         * @param {String} message
-         */
-        showMessage: function (message) {
-            var m = document.createElement("div");
-            m.className = "client-message";
-            m.innerHTML = message;
-            AnslemClient.stage.container.appendChild(m);
-            console.log(message);
-        },
+        this.serverAddress = serverAddress;
+
         /**
          * Stage object
          *
          * @property stage
          * @type {Stage}
          */
-        stage: new Stage(),
+        this.stage = new Stage();
+
+        /**
+         * Error callback
+         *
+         * @event errorCallback
+         * @param {Object} response
+         */
+        this.errorCallback = function (response) {
+            this.showMessage(response.message);
+        };
+        /**
+         * Render the scene
+         *
+         * @method render
+         * @param {Object} ctx
+         */
+        this.render = function (ctx) {
+            for (var index in self.data.packet.contents) {
+                var e = self.data.packet.contents[index];
+                var sprite = self.stage.sprites[e.sprite.image];
+                if (e.sprite.tileX) {
+                    for (var xx = -Math.floor((self.data.packet.viewX * e.sprite.scrollSpeed) % e.width); xx < self.stage.canvas.width; xx = xx + e.width) {
+                        sprite.draw(ctx, e.sprite.frame, xx, e.y - (e.height / 2) - self.data.packet.viewY, e.sprite.mirror);
+                    }
+                } else {
+                    sprite.draw(ctx, e.sprite.frame, e.x - (e.width / 2) - self.data.packet.viewX, e.y - (e.height / 2) - self.data.packet.viewY, e.sprite.mirror);
+                }
+            }
+        };
+
+        /**
+         * Show message to client
+         *
+         * @method showMessage
+         * @param {String} message
+         */
+        AnslemClient.prototype.showMessage = function (message) {
+            var m = document.createElement("div");
+            m.className = "client-message";
+            m.innerHTML = message;
+            this.stage.container.appendChild(m);
+            console.log(message);
+        };
+
         /**
          * Start it up
          *
          * @method start
          */
-        start: function () {
-            AnslemClient.running = true;
-            AnslemClient.stage.start(AnslemClient.render);
-        },
+        AnslemClient.prototype.start = function () {
+            NodeClient.prototype.start.call(this, function (response) {
+                var sprites = response.initialData.assets.sprites;
+                self.stage.init(document.body, response.initialData.viewScale);
+                self.stage.loadAssets(
+                        Object.keys(sprites).length,
+                        function (assetLoadedCallback) {
+                            for (var index in sprites) {
+                                var s = sprites[index];
+                                self.stage.sprites[index] = new Sprite(AnslemClientConfig.assetsUrl + s.imagePath, s.frameCount, s.frameSpeed, assetLoadedCallback, s.singleImage);
+                            }
+                            self.stage.sounds = {};
+                        },
+                        function () {
+                            self.stage.start(self.render);
+                        }
+                );
+            });
+        };
+
         /**
          * Stop drawing
          *
          * @method stop
          */
-        stop: function () {
-            AnslemClient.running = false;
-            AnslemClient.stage.stop();
-        }
-    };
+        AnslemClient.prototype.stop = function () {
+            this.stage.stop();
+        };
+    }
+    AnslemClient.prototype = new NodeClient();
+    AnslemClient.prototype.constructor = AnslemClient;
 
     return AnslemClient;
 });

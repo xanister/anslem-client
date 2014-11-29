@@ -171,7 +171,7 @@ define(['lib/socket.io'], function (io) {
          * @method getClientScreenWidth
          * @return {Number}
          */
-        this.getClientScreenWidth = function () {
+        NodeClient.prototype.getClientScreenWidth = function () {
             return Math.max(document.documentElement.clientWidth, window.innerWidth || 0);
         };
 
@@ -181,7 +181,7 @@ define(['lib/socket.io'], function (io) {
          * @method getClientScreenHeight
          * @return {Number}
          */
-        this.getClientScreenHeight = function () {
+        NodeClient.prototype.getClientScreenHeight = function () {
             return Math.max(document.documentElement.clientHeight, window.innerHeight || 0);
         };
 
