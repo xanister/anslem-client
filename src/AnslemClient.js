@@ -57,7 +57,7 @@ define(['AnslemClientConfig', 'lib/NodeClient', 'lib/Sprite', 'lib/Stage', 'lib/
         this.render = function (ctx) {
             for (var index in self.data.packet.contents) {
                 var e = self.data.packet.contents[index];
-                var sprite = self.stage.sprites[e.sprite.image];
+                var sprite = self.stage.sprites[e.sprite.name][e.sprite.animation];
                 if (e.sprite.tileX) {
                     for (var xx = -Math.floor((self.data.packet.viewX * e.sprite.scrollSpeed) % e.width); xx < self.stage.canvas.width; xx = xx + e.width) {
                         sprite.draw(ctx, e.sprite.frame, xx, e.y - (e.height / 2) - self.data.packet.viewY, e.sprite.mirror);
@@ -89,13 +89,20 @@ define(['AnslemClientConfig', 'lib/NodeClient', 'lib/Sprite', 'lib/Stage', 'lib/
         AnslemClient.prototype.start = function () {
             NodeClient.prototype.start.call(this, function (response) {
                 var sprites = response.initialData.assets.sprites;
+                var spriteCount = 0;
+                for (var index in sprites) {
+                    spriteCount += Object.keys(sprites[index]).length
+                }
                 self.stage.init(document.body, response.initialData.viewScale);
                 self.stage.loadAssets(
-                        Object.keys(sprites).length,
+                        spriteCount,
                         function (assetLoadedCallback) {
                             for (var index in sprites) {
-                                var s = sprites[index];
-                                self.stage.sprites[index] = new Sprite(AnslemClientConfig.assetsUrl + s.imagePath, s.frameCount, s.frameSpeed, assetLoadedCallback, s.singleImage);
+                                self.stage.sprites[index] = {};
+                                for (var animation in sprites[index]) {
+                                    var s = sprites[index][animation];
+                                    self.stage.sprites[index][animation] = new Sprite(AnslemClientConfig.assetsUrl + s.imagePath, s.frameCount, s.frameSpeed, assetLoadedCallback, s.singleImage);
+                                }
                             }
                             self.stage.sounds = {};
                         },
