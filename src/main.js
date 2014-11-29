@@ -2,7 +2,7 @@
  * Setup requirejs
  */
 requirejs.config({
-    baseUrl: 'js',
+    baseUrl: 'src',
     shim: {
         'socketio': {
             exports: 'io'

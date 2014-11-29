@@ -79,7 +79,6 @@ define(['AnslemClientConfig', 'lib/NodeClient', 'lib/Sprite', 'lib/Stage', 'lib/
             m.className = "client-message";
             m.innerHTML = message;
             this.stage.container.appendChild(m);
-            console.log(message);
         };
 
         /**

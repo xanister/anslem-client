@@ -24,7 +24,7 @@ define(function () {
          * @property serverUrl
          * @type {String}
          */
-        serverUrl: "http://forest.anslemgalaxy.com:3000"
+        serverUrl: "http://server.anslemgalaxy.com:3010"
     };
     return AnslemClientConfig;
 });
