@@ -1,5 +1,2 @@
-nbproject
 .DS_Store
-server
-node_modules
-/nbproject/private/
+src/AnslemClientConfig.js
