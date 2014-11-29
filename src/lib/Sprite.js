@@ -149,7 +149,7 @@ define(function () {
             for (var i = 0; i < imageCount; i++) {
                 var img = new Image();
                 img.setAttribute('crossOrigin', 'anonymous');
-                img.src = imagePath + this.zeroPad(i, 3) + '.png';
+                img.src = imagePath + (self.singleImage ? "" : this.zeroPad(i, 3)) + '.png';
                 img.addEventListener("load", function () {
                     var c = document.createElement('canvas');
                     c.width = this.width;
