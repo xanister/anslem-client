@@ -4,7 +4,7 @@
  * @module NodeClient
  * @requires socket.io
  */
-define(['lib/socket.io'], function (io) {
+define(['lib/socket.io', 'lib/hammer'], function (io, Hammer) {
     /**
      * NodeClient
      *
@@ -21,6 +21,24 @@ define(['lib/socket.io'], function (io) {
          * @type {Number}
          */
         NodeClient.swipeDistance = 50;
+
+        /**
+         * Touch time max for swipe in ms
+         *
+         * @property swipeTime
+         * @static
+         * @type {Number}
+         */
+        NodeClient.swipeTime = 500;
+
+        /**
+         * Hammer instance
+         *
+         * @property hammertime
+         * @private
+         * @type {Object}
+         */
+        var hammertime = new Hammer(document.body);
 
         /**
          * IO socket
@@ -136,6 +154,7 @@ define(['lib/socket.io'], function (io) {
         NodeClient.prototype.inputUpdate = function (inputs) {
             socket.emit("clientInput", inputs);
             this.inputs.events = this.getEmptyInputEvents();
+            this.inputs.message = false;
         };
 
         /**
@@ -156,10 +175,9 @@ define(['lib/socket.io'], function (io) {
          */
         NodeClient.prototype.getEmptyInputEvents = function () {
             return {
+                doubletap: false,
                 keydown: {},
                 keyup: {},
-                message: false,
-                swipe: {},
                 touchstart: false,
                 touchend: false
             };
@@ -334,77 +352,55 @@ define(['lib/socket.io'], function (io) {
             });
 
             /**
-             * Client touchstart
+             * Hammer events
              *
-             * @event touchstart
+             * @event doubletap panstart panend panmove pancancel
              * @private
              * @param {Event} event
              */
-            document.addEventListener("touchstart", function (event) {
-                event.preventDefault();
-                for (var index = 0; index < event.changedTouches.length; index++) {
-                    nodeClient.inputs.touches[index] = {
-                        x: event.changedTouches[index].clientX,
-                        y: event.changedTouches[index].clientY,
-                        startX: event.changedTouches[index].clientX,
-                        startY: event.changedTouches[index].clientY
-                    };
-                    nodeClient.inputs.events.touchstart = {
-                        touchIndex: index,
-                        x: event.changedTouches[index].clientX,
-                        y: event.changedTouches[index].clientY
-                    };
-                }
+            hammertime.get('pan').set({direction: Hammer.DIRECTION_ALL});
+            hammertime.on('doubletap panstart panend panmove pancancel', function (event) {
+                nodeClient.inputs.touches[0] = false;
+                switch (event.type) {
+                    case 'doubletap':
+                        nodeClient.inputs.events.doubletap = true;
+                        document.dispatchEvent(new Event("doubletap"));
+                        break;
+                    case 'pancancel':
+                        break;
+                    case 'panend':
+                        if (event.distance > NodeClient.swipeDistance && event.deltaTime < NodeClient.swipeTime) {
+                            switch (event.direction) {
+                                case Hammer.DIRECTION_RIGHT:
+                                    nodeClient.inputs.events.swiperight = true;
+                                    break;
+                                case Hammer.DIRECTION_LEFT:
+                                    nodeClient.inputs.events.swipeleft = true;
+                                    break;
+                                case Hammer.DIRECTION_UP:
+                                    nodeClient.inputs.events.swipeup = true;
+                                    break;
+                                case Hammer.DIRECTION_DOWN:
+                                    nodeClient.inputs.events.swipedown = true;
+                                    break;
+                            }
+                        }
 
-                nodeClient.inputUpdate.call(nodeClient, nodeClient.inputs);
-            });
-
-            /**
-             * Client touchmove, possibly dangerous to run over network
-             *
-             * @event touchmove
-             * @private
-             * @param {Event} event
-             */
-            document.addEventListener("touchmove", function (event) {
-                event.preventDefault();
-                for (var index = 0; index < event.changedTouches.length; index++) {
-                    nodeClient.inputs.touches[index].x = event.changedTouches[index].clientX;
-                    nodeClient.inputs.touches[index].y = event.changedTouches[index].clientY;
-                }
-                nodeClient.inputUpdate.call(nodeClient, nodeClient.inputs);
-            });
-
-            /**
-             * Client touchend
-             *
-             * @event touchend
-             * @private
-             * @param {Event} event
-             */
-            document.addEventListener("touchend", function (event) {
-                event.preventDefault();
-                for (var index = 0; index < event.changedTouches.length; index++) {
-                    var swipeDistX = event.changedTouches[index].clientX - nodeClient.inputs.touches[index].startX;
-                    var swipeDistY = event.changedTouches[index].clientY - nodeClient.inputs.touches[index].startY;
-                    var swipeH = swipeDistX > NodeClient.swipeDistance ? "right" : (swipeDistX < -NodeClient.swipeDistance ? "left" : false);
-                    var swipeV = swipeDistY > NodeClient.swipeDistance ? "down" : (swipeDistY < -NodeClient.swipeDistance ? "up" : false);
-                    var swipeDirection = swipeV || swipeH || false;
-                    if (swipeDirection) {
-                        nodeClient.inputs.events.swipe[swipeDirection] = {
-                            dir: swipeDirection,
-                            distX: swipeDistX,
-                            distY: swipeDistY,
-                            x: event.changedTouches[index].clientX,
-                            y: event.changedTouches[index].clientY
+                        nodeClient.inputs.events.touchend = {
+                            x: event.changedPointers[0].clientX,
+                            y: event.changedPointers[0].clientX
                         };
-                    }
-                    delete nodeClient.inputs.touches[index];
-                    nodeClient.inputs.events.touchend = {
-                        touchIndex: index,
-                        x: event.changedTouches[index].clientX,
-                        y: event.changedTouches[index].clientY
-                    };
+                        break;
+                    case 'panstart':
+                        nodeClient.inputs.events.touchstart = {
+                            x: event.changedPointers[0].clientX,
+                            y: event.changedPointers[0].clientX
+                        };
+                    default:
+                        nodeClient.inputs.touches[0] = {
+                            x: event.changedPointers[0].clientX,
+                            y: event.changedPointers[0].clientX
+                        };
                 }
                 nodeClient.inputUpdate.call(nodeClient, nodeClient.inputs);
             });

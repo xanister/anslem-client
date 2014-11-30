@@ -101,7 +101,7 @@ define(function () {
                 img = this.singleImage ? this.imagesMirror[0] : this.imagesMirror[frame];
             else
                 img = this.singleImage ? this.images[0] : this.images[frame];
-            ctx.drawImage(img, xOffset, 0, this.width, this.height, tarX + this.xOffset, tarY + this.yOffset, this.width, this.height);
+            ctx.drawImage(img, xOffset, 0, this.width, this.height, tarX + (mirror ? -this.xOffset : this.xOffset), tarY + this.yOffset, this.width, this.height);
         };
 
         /**

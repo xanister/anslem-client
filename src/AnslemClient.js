@@ -40,6 +40,24 @@ define(['AnslemClientConfig', 'lib/NodeClient', 'lib/Sprite', 'lib/Stage', 'lib/
         this.stage = new Stage();
 
         /**
+         * Bind events
+         *
+         * @method bindEvents
+         */
+        this.bindEvents = function () {
+            document.addEventListener("keydown", function (e) {
+                var code = e.keyCode || e.which;
+                if (code === 13) {
+                    self.messageInput();
+                }
+            });
+
+            document.addEventListener("doubletap", function (e) {
+                self.messageInput();
+            });
+        };
+
+        /**
          * Error callback
          *
          * @event errorCallback
@@ -48,6 +66,20 @@ define(['AnslemClientConfig', 'lib/NodeClient', 'lib/Sprite', 'lib/Stage', 'lib/
         this.errorCallback = function (response) {
             this.showMessage(response.message);
         };
+
+        /**
+         * Get message from client and send to server
+         *
+         * @method messageInput
+         */
+        this.messageInput = function () {
+            this.stage.stop();
+            var message = prompt("Say:");
+            this.stage.start(this.render);
+            self.inputs.message = message;
+            self.inputUpdate.call(self, self.inputs);
+        };
+
         /**
          * Render the scene
          *
@@ -65,6 +97,9 @@ define(['AnslemClientConfig', 'lib/NodeClient', 'lib/Sprite', 'lib/Stage', 'lib/
                 } else {
                     sprite.draw(ctx, e.sprite.frame, e.x - (sprite.width / 2) - self.data.packet.viewX, e.y - (sprite.height / 2) - self.data.packet.viewY, e.sprite.mirror);
                 }
+                if (e.bubble) {
+                    self.stage.drawBubble(e.bubble.message, e.x - self.data.packet.viewX, e.y - (sprite.height / 2) - self.data.packet.viewY);
+                }
             }
         };
 
@@ -78,7 +113,7 @@ define(['AnslemClientConfig', 'lib/NodeClient', 'lib/Sprite', 'lib/Stage', 'lib/
             var m = document.createElement("div");
             m.className = "client-message";
             m.innerHTML = message;
-            this.stage.container.appendChild(m);
+            document.getElementById('client-messages').appendChild(m);
         };
 
         /**
@@ -91,7 +126,7 @@ define(['AnslemClientConfig', 'lib/NodeClient', 'lib/Sprite', 'lib/Stage', 'lib/
                 var sprites = response.initialData.assets.sprites;
                 var spriteCount = 0;
                 for (var index in sprites) {
-                    spriteCount += Object.keys(sprites[index]).length
+                    spriteCount += Object.keys(sprites[index]).length;
                 }
                 self.stage.init(document.body, response.initialData.viewScale);
                 self.stage.loadAssets(
@@ -107,7 +142,9 @@ define(['AnslemClientConfig', 'lib/NodeClient', 'lib/Sprite', 'lib/Stage', 'lib/
                             self.stage.sounds = {};
                         },
                         function () {
+                            self.stage.targetFps = AnslemClientConfig.clientFps;
                             self.stage.start(self.render);
+                            self.bindEvents();
                         }
                 );
             });

@@ -19,6 +19,13 @@ define(function () {
          */
         assetsUrl: "http://assets.anslemgalaxy.com",
         /**
+         * Client target fps
+         *
+         * @property clientFps
+         * @type {Number}
+         */
+        clientFps: 30,
+        /**
          * Game server url
          *
          * @property serverUrl

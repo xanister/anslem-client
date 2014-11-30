@@ -9,11 +9,19 @@ html,body{
     overflow: hidden;
 }
 
+#client-messages{
+    width: 200px;
+    position: absolute;
+    z-index: 10;
+    left: 0;
+    top: 0;
+}
+
 .client-message{
     margin: 5vw;
     padding: 3vw;
 
-    position: absolute;
+    position: relative;
 
     border-radius: 5px;
     border: 1px solid black;
