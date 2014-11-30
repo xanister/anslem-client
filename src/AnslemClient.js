@@ -63,7 +63,7 @@ define(['AnslemClientConfig', 'lib/NodeClient', 'lib/Sprite', 'lib/Stage', 'lib/
                         sprite.draw(ctx, e.sprite.frame, xx, e.y - (e.height / 2) - self.data.packet.viewY, e.sprite.mirror);
                     }
                 } else {
-                    sprite.draw(ctx, e.sprite.frame, e.x - (e.width / 2) - self.data.packet.viewX, e.y - (e.height / 2) - self.data.packet.viewY, e.sprite.mirror);
+                    sprite.draw(ctx, e.sprite.frame, e.x - (sprite.width / 2) - self.data.packet.viewX, e.y - (sprite.height / 2) - self.data.packet.viewY, e.sprite.mirror);
                 }
             }
         };
@@ -101,7 +101,7 @@ define(['AnslemClientConfig', 'lib/NodeClient', 'lib/Sprite', 'lib/Stage', 'lib/
                                 self.stage.sprites[index] = {};
                                 for (var animation in sprites[index]) {
                                     var s = sprites[index][animation];
-                                    self.stage.sprites[index][animation] = new Sprite(AnslemClientConfig.assetsUrl + s.imagePath, s.frameCount, s.frameSpeed, assetLoadedCallback, s.singleImage);
+                                    self.stage.sprites[index][animation] = new Sprite(AnslemClientConfig.assetsUrl + s.imagePath, s.frameCount, s.frameSpeed, assetLoadedCallback, s.singleImage, s.xOffset, s.yOffset);
                                 }
                             }
                             self.stage.sounds = {};

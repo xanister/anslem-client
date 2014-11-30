@@ -60,6 +60,14 @@ define(function () {
         this.sprites = [];
 
         /**
+         * Attempt to keep standard framerate
+         *
+         * @property targetFps
+         * @type {Number}
+         */
+        this.targetFps = 30;
+
+        /**
          * Percent to scale the stage
          *
          * @property viewScale
@@ -143,12 +151,16 @@ define(function () {
             var ctx = this.canvas.getContext("2d");
             var self = this;
             var startTime = 0;
+            var frameSkip = Math.floor(60 / self.targetFps);
+            var framesSkipped = 1;
             function step(timestamp) {
-                ctx.clearRect(0, 0, self.canvas.width, self.canvas.height);
-                renderCallback(ctx);
-                var progress = timestamp - startTime;
-                startTime = timestamp;
-                self.currentFps = Math.round(1000 / progress);
+                if (--framesSkipped <= 0) {
+                    framesSkipped = frameSkip;
+                    ctx.clearRect(0, 0, self.canvas.width, self.canvas.height);
+                    renderCallback(ctx);
+                    self.currentFps = Math.round(1000 / (timestamp - startTime));
+                    startTime = timestamp;
+                }
                 if (self.running)
                     window.requestAnimationFrame(step);
             }

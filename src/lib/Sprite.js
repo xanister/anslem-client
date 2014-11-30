@@ -14,8 +14,10 @@ define(function () {
      * @param {Number} frameSpeed
      * @param {Function} imagesLoadedCallback
      * @param {Boolean} singleImage
+     * @param {Number} xOffset
+     * @param {Number} yOffset
      */
-    function Sprite(imagePath, frameCount, frameSpeed, imagesLoadedCallback, singleImage) {
+    function Sprite(imagePath, frameCount, frameSpeed, imagesLoadedCallback, singleImage, xOffset, yOffset) {
         /**
          * Count of images currently loading
          *
@@ -66,6 +68,22 @@ define(function () {
         this.width = 0;
 
         /**
+         * Drawing offset from center
+         *
+         * @property xOffset
+         * @type {Number}
+         */
+        this.xOffset = xOffset || 0;
+
+        /**
+         * Drawing offset from center
+         *
+         * @property xOffset
+         * @type {Number}
+         */
+        this.yOffset = yOffset || 0;
+
+        /**
          * Draw sprite at target location
          *
          * @method draw
@@ -77,13 +95,13 @@ define(function () {
          */
         Sprite.prototype.draw = function (ctx, frame, tarX, tarY, mirror) {
             frame = Math.floor(frame || 0);
-            var xOffset = this.singleImage ? frame * this.width : 0;
+            var xOffset = this.singleImage ? (mirror ? (this.frameCount - 1) - frame : frame) * this.width : 0;
             var img;
             if (mirror)
                 img = this.singleImage ? this.imagesMirror[0] : this.imagesMirror[frame];
             else
                 img = this.singleImage ? this.images[0] : this.images[frame];
-            ctx.drawImage(img, xOffset, 0, this.width, this.height, tarX, tarY, this.width, this.height);
+            ctx.drawImage(img, xOffset, 0, this.width, this.height, tarX + this.xOffset, tarY + this.yOffset, this.width, this.height);
         };
 
         /**
