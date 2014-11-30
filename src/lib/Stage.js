@@ -101,6 +101,7 @@ define(function () {
         /**
          * Draw fancy message bubble
          *
+         * @method drawBubble
          * @param {String} message
          * @param {Number} tarX
          * @param {Number} tarY
