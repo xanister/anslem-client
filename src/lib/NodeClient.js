@@ -14,13 +14,22 @@ define(['lib/socket.io', 'lib/hammer'], function (io, Hammer) {
      */
     function NodeClient(serverAddress) {
         /**
-         * Touch distance required to register a swipe
+         * IO socket
          *
-         * @property swipeDistance
-         * @static
-         * @type {Number}
+         * @property socket
+         * @private
+         * @type {Object}
          */
-        NodeClient.swipeDistance = 50;
+        var socket;
+
+        /**
+         * Hammer instance
+         *
+         * @property hammertime
+         * @private
+         * @type {Object}
+         */
+        NodeClient.hammertime = new Hammer(document.body);
 
         /**
          * Touch time max for swipe in ms
@@ -32,22 +41,13 @@ define(['lib/socket.io', 'lib/hammer'], function (io, Hammer) {
         NodeClient.swipeTime = 500;
 
         /**
-         * Hammer instance
+         * Touch velocity required to register a swipe
          *
-         * @property hammertime
-         * @private
-         * @type {Object}
+         * @property swipeVelocity
+         * @static
+         * @type {Number}
          */
-        var hammertime = new Hammer(document.body);
-
-        /**
-         * IO socket
-         *
-         * @property socket
-         * @private
-         * @type {Object}
-         */
-        var socket;
+        NodeClient.swipeVelocity = 0.3;
 
         /**
          * Connected flag
@@ -358,18 +358,17 @@ define(['lib/socket.io', 'lib/hammer'], function (io, Hammer) {
              * @private
              * @param {Event} event
              */
-            hammertime.get('pan').set({direction: Hammer.DIRECTION_ALL});
-            hammertime.on('doubletap panstart panend panmove pancancel', function (event) {
+            NodeClient.hammertime.get('pan').set({direction: Hammer.DIRECTION_ALL});
+            NodeClient.hammertime.on('tap panstart panend panmove pancancel', function (event) {
                 nodeClient.inputs.touches[0] = false;
                 switch (event.type) {
-                    case 'doubletap':
-                        nodeClient.inputs.events.doubletap = true;
-                        document.dispatchEvent(new Event("doubletap"));
+                    case 'tap':
+                        nodeClient.inputs.events["tap" + event.tapCount] = true;
                         break;
                     case 'pancancel':
                         break;
                     case 'panend':
-                        if (event.distance > NodeClient.swipeDistance && event.deltaTime < NodeClient.swipeTime) {
+                        if (Math.abs(event.velocity) > NodeClient.swipeVelocity) {
                             switch (event.direction) {
                                 case Hammer.DIRECTION_RIGHT:
                                     nodeClient.inputs.events.swiperight = true;
@@ -382,6 +381,7 @@ define(['lib/socket.io', 'lib/hammer'], function (io, Hammer) {
                                     break;
                                 case Hammer.DIRECTION_DOWN:
                                     nodeClient.inputs.events.swipedown = true;
+                                    document.dispatchEvent(new Event("swipedown"));
                                     break;
                             }
                         }

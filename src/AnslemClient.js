@@ -47,12 +47,11 @@ define(['AnslemClientConfig', 'lib/NodeClient', 'lib/Sprite', 'lib/Stage', 'lib/
         this.bindEvents = function () {
             document.addEventListener("keydown", function (e) {
                 var code = e.keyCode || e.which;
-                if (code === 13) {
+                if (code === 13)
                     self.messageInput();
-                }
             });
 
-            document.addEventListener("doubletap", function (e) {
+            document.addEventListener("swipedown", function (e) {
                 self.messageInput();
             });
         };
@@ -87,20 +86,24 @@ define(['AnslemClientConfig', 'lib/NodeClient', 'lib/Sprite', 'lib/Stage', 'lib/
          * @param {Object} ctx
          */
         this.render = function (ctx) {
+            self.data.packet.contents.sort(function (a, b) {
+                var diff = a.z - b.z;
+                return diff === 0 ? a.x - b.x : diff;
+            });
             for (var index in self.data.packet.contents) {
                 var e = self.data.packet.contents[index];
                 var sprite = self.stage.sprites[e.sprite.name][e.sprite.animation];
-                if (e.sprite.tileX) {
+                if (e.sprite.tileX)
                     for (var xx = -Math.floor((self.data.packet.viewX * e.sprite.scrollSpeed) % e.width); xx < self.stage.canvas.width; xx = xx + e.width) {
                         sprite.draw(ctx, e.sprite.frame, xx, e.y - (e.height / 2) - self.data.packet.viewY, e.sprite.mirror);
                     }
-                } else {
+                else
                     sprite.draw(ctx, e.sprite.frame, e.x - (sprite.width / 2) - self.data.packet.viewX, e.y - (sprite.height / 2) - self.data.packet.viewY, e.sprite.mirror);
-                }
-                if (e.bubble) {
+                if (e.bubble)
                     self.stage.drawBubble(e.bubble.message, e.x - self.data.packet.viewX, e.y - (sprite.height / 2) - self.data.packet.viewY);
-                }
             }
+            if (self.debugging)
+                self.stage.drawText(self.stage.currentFps, 50, 100, "bold 100px Arial", "red");
         };
 
         /**
