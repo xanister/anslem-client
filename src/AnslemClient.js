@@ -86,12 +86,12 @@ define(['AnslemClientConfig', 'lib/NodeClient', 'lib/Sprite', 'lib/Stage', 'lib/
          * @param {Object} ctx
          */
         this.render = function (ctx) {
-            self.data.packet.contents.sort(function (a, b) {
+            self.data.packet.inView.sort(function (a, b) {
                 var diff = a.z - b.z;
                 return diff === 0 ? a.x - b.x : diff;
             });
-            for (var index in self.data.packet.contents) {
-                var e = self.data.packet.contents[index];
+            for (var index in self.data.packet.inView) {
+                var e = self.data.packet.inView[index];
                 var sprite = self.stage.sprites[e.sprite.name][e.sprite.animation];
                 if (e.sprite.tileX)
                     for (var xx = -Math.floor((self.data.packet.viewX * e.sprite.scrollSpeed) % e.width); xx < self.stage.canvas.width; xx = xx + e.width) {
@@ -125,6 +125,7 @@ define(['AnslemClientConfig', 'lib/NodeClient', 'lib/Sprite', 'lib/Stage', 'lib/
          * @method start
          */
         AnslemClient.prototype.start = function () {
+            var loadingIndicator = document.getElementById("loading-indicator");
             NodeClient.prototype.start.call(this, function (response) {
                 var sprites = response.initialData.assets.sprites;
                 var spriteCount = 0;
@@ -132,6 +133,11 @@ define(['AnslemClientConfig', 'lib/NodeClient', 'lib/Sprite', 'lib/Stage', 'lib/
                     spriteCount += Object.keys(sprites[index]).length;
                 }
                 self.stage.init(document.body, response.initialData.viewScale);
+                self.stage.loadingTickCallback = function (percent) {
+                    loadingIndicator.value = percent * 100;
+                    if (percent === 1)
+                        loadingIndicator.className = 'done';
+                };
                 self.stage.loadAssets(
                         spriteCount,
                         function (assetLoadedCallback) {

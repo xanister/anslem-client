@@ -44,6 +44,14 @@ define(function () {
         this.defaultFont = "bold 80px Arial";
 
         /**
+         * Tick callback for loading indicator
+         *
+         * @property loadingTickCallback
+         * @type {Function}
+         */
+        this.loadingTickCallback = false;
+
+        /**
          * Running flag
          *
          * @property running
@@ -203,11 +211,14 @@ define(function () {
          * @param {Function} assetsLoadedCallback
          */
         Stage.prototype.loadAssets = function (assetCount, loaderFunction, assetsLoadedCallback) {
+            var self = this;
+            var assetsToLoad = assetCount;
             loaderFunction(function () {
-                assetCount--;
-                if (assetCount === 0) {
+                assetsToLoad--;
+                if (self.loadingTickCallback)
+                    self.loadingTickCallback(1 - (assetsToLoad / assetCount));
+                if (assetsToLoad === 0)
                     assetsLoadedCallback();
-                }
             });
         };
 

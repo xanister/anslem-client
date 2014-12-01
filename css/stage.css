@@ -31,3 +31,21 @@ body{
     border-radius: 5px;
     border: 1px solid black;
 }
+
+#loading-indicator{
+    width: 40%;
+
+    position: absolute;
+    left: 50%;
+    top: 50%;
+
+    transform: translateX(-50%) translateY(-50%);
+    -webkit-transform: translateX(-50%) translateY(-50%);
+
+    transition: all 500ms ease-in-out;
+    -webkit-transition: all 500ms ease-in-out;
+}
+
+#loading-indicator.done{
+    width: 0%;
+}
