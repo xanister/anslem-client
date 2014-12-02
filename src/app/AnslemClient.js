@@ -57,6 +57,13 @@ define(['AnslemClientConfig', 'jquery', 'jquery.keyboard', 'NodeClient', 'Sprite
                         self.textInput.value = 'Say...';
                         self.textInput.selectionStart = 0;
                         self.textInput.selectionEnd = 6;
+
+                        self.inputs.events = self.getEmptyInputEvents();
+                        self.inputs.keyboard = {};
+                        self.inputs.touches = {};
+                        self.inputUpdate.call(self, self.inputs);
+                        self.inputEnabled = false;
+
                         self.textInput.focus();
                         return false;
                     }
@@ -64,6 +71,8 @@ define(['AnslemClientConfig', 'jquery', 'jquery.keyboard', 'NodeClient', 'Sprite
             });
 
             document.addEventListener("swipedown", function () {
+                self.textInput.style.left = (self.data.packet.x - self.data.packet.viewX) / self.stage.viewScale + "px";
+                self.textInput.style.top = (self.data.packet.y - self.data.packet.viewY - self.data.packet.height) / self.stage.viewScale + "px";
                 self.textInput.className = "";
                 self.textInput.value = '';
             });
@@ -75,7 +84,7 @@ define(['AnslemClientConfig', 'jquery', 'jquery.keyboard', 'NodeClient', 'Sprite
 
             this.textInput.addEventListener("focus", function () {
                 self.inputs.events = self.getEmptyInputEvents();
-                self.inputs.keboard = {};
+                self.inputs.keyboard = {};
                 self.inputs.touches = {};
                 self.inputUpdate.call(self, self.inputs);
                 self.inputEnabled = false;
