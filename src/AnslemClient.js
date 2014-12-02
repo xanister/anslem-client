@@ -122,7 +122,7 @@ define(['AnslemClientConfig', 'lib/NodeClient', 'lib/Sprite', 'lib/Stage', 'lib/
 
             // Connect to server and get list of required assets
             NodeClient.prototype.start.call(this, function (response) {
-                // Load sprites
+                // Preload all needed images
                 var sprites = response.initialData.assets.sprites;
                 var imagePaths = [];
                 for (var index in sprites) {

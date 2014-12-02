@@ -70,6 +70,22 @@ define(function () {
         this.defaultFont = "bold 80px Arial";
 
         /**
+         * Is the client running a mobile device
+         *
+         * @property isMobile
+         * @type {Boolean}
+         */
+        this.isMobile = (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent));
+
+        /**
+         * Is the client running in web app mode
+         *
+         * @property standalone
+         * @type {Boolean}
+         */
+        this.isStandalone = window.navigator.standalone || false;
+
+        /**
          * Tick callback for loading indicator
          *
          * @property loadingTickCallback
@@ -242,6 +258,10 @@ define(function () {
          * @param {Function} readyCallback
          */
         Stage.prototype.initializeAssetStore = function (readyCallback) {
+            // TEMP: Disable indexedDB storage on mobile
+            if (this.isMobile)
+                return readyCallback.call(this);
+
             var request = indexedDB.open("assetDB", this.assetDBVersion);
             if (!request) {
                 if (readyCallback)
@@ -278,7 +298,9 @@ define(function () {
                             if (cursor) {
                                 var asset = assetType === 'images' ? new Image() : new Audio();
                                 asset.crossOrigin = 'anonymous';
-                                asset.onerror = function () {
+                                asset.onerror = function (event) {
+                                    console.log("Error decoding asset", this);
+                                    console.log(event);
                                     delete self.assetStore[assetType][cursor.key];
                                 };
                                 asset.src = 'data:image/png;base64,' + cursor.value.data;
