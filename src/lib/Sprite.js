@@ -9,7 +9,6 @@ define(function () {
      *
      * @class Sprite
      * @constructor
-     * @param {String} imagePath
      * @param {Number} frameCount
      * @param {Number} frameSpeed
      * @param {Function} imagesLoadedCallback
@@ -17,7 +16,7 @@ define(function () {
      * @param {Number} xOffset
      * @param {Number} yOffset
      */
-    function Sprite(imagePath, frameCount, frameSpeed, imagesLoadedCallback, singleImage, xOffset, yOffset) {
+    function Sprite(frameCount, frameSpeed, imagesLoadedCallback, singleImage, xOffset, yOffset) {
         /**
          * Count of images currently loading
          *
@@ -33,7 +32,7 @@ define(function () {
          * @property frameCount
          * @type {Number}
          */
-        this.frameCount = frameCount || 0;
+        this.frameCount = frameCount || 1;
 
         /**
          * Default framespeed
@@ -50,6 +49,30 @@ define(function () {
          * @type {Number}
          */
         this.height = 0;
+
+        /**
+         * Sprite images
+         *
+         * @property images
+         * @type {Array}
+         */
+        this.images = [];
+
+        /**
+         * Mirrored images
+         *
+         * @property imagesMirror
+         * @type {Array}
+         */
+        this.imagesMirror = [];
+
+        /**
+         * Callback when all images for sprite are loaded
+         *
+         * @property imagesLoadedCallback
+         * @type {Function}
+         */
+        this.imagesLoadedCallback = false;
 
         /**
          * Single sheet sprite flag
@@ -168,7 +191,7 @@ define(function () {
             var self = this;
             for (var i = 0; i < imageCount; i++) {
                 var img = new Image();
-                img.setAttribute('crossOrigin', 'anonymous');
+                img.crossOrigin = "anonymous";
                 img.src = imagePath + (self.singleImage ? "" : this.zeroPad(i, 3)) + '.png';
                 img.addEventListener("load", function () {
                     var c = document.createElement('canvas');
@@ -181,6 +204,7 @@ define(function () {
                     ctx.restore();
 
                     var imgMirror = new Image();
+                    imgMirror.crossOrigin = "anonymous";
                     imgMirror.src = c.toDataURL();
 
                     self.imagesMirror.push(imgMirror);
@@ -191,42 +215,40 @@ define(function () {
             this.imagesLoadedCallback = imagesLoadedCallback || this.imagesLoadedCallback;
         };
 
-
         /**
-         * Return zero padded number
+         * Sets images for sprite from existing image objects
          *
-         * @method zeroPad
-         * @param {String} subject
-         * @param {Number} width
-         * @param {Number} char
-         * @return {String}
+         * @method setImages
+         * @param {Array} images
+         * @param {Number} frameCount
+         * @param {Number} frameSpeed
+         * @param {Number} xOffset
+         * @param {Number} yOffset
          */
-        this.zeroPad = function (subject, width, char) {
-            char = char || '0';
-            subject = subject + '';
-            return subject.length >= width ? subject : new Array(width - subject.length + 1).join(char) + subject;
+        Sprite.prototype.setImages = function (images, frameCount, frameSpeed, xOffset, yOffset) {
+            this.frameSpeed = frameSpeed;
+            this.singleImage = images.length === 1;
+            this.frameCount = frameCount;
+            this.width = this.singleImage ? images[0].width / frameCount : images[0].width;
+            this.height = images[0].height;
+            this.xOffset = xOffset;
+            this.yOffset = yOffset;
+            for (var index = 0; index < images.length; index++) {
+                var img = images[index];
+                this.images.push(img);
+
+                var imgMirror = document.createElement('canvas');
+                imgMirror.width = img.width;
+                imgMirror.height = img.height;
+
+                var ctx = imgMirror.getContext('2d');
+                ctx.scale(-1, 1);
+                ctx.drawImage(img, -img.width, 0);
+                ctx.restore();
+
+                this.imagesMirror.push(imgMirror);
+            }
         };
-
-        /**
-         * Sprite images
-         *
-         * @property images
-         * @type {Array}
-         */
-        this.images = [];
-
-        /**
-         * Mirrored images
-         *
-         * @property imagesMirror
-         * @type {Array}
-         */
-        this.imagesMirror = [];
-
-        /*
-         * Initialize the images
-         */
-        this.loadImages(imagePath, this.singleImage || !frameCount ? 1 : frameCount, imagesLoadedCallback || false);
     }
 
     return Sprite;

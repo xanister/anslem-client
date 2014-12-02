@@ -12,6 +12,32 @@ define(function () {
      */
     function Stage() {
         /**
+         * Access to local store indexedDB
+         *
+         * @property assetDB
+         * @type {Object}
+         */
+        this.assetDB = false;
+
+        /**
+         * Assets db version
+         *
+         * @property imageDBVersion
+         * @static
+         * @type {Number}
+         */
+        this.assetDBVersion = 1;
+
+        /**
+         * Local assets stored
+         *
+         * @property assetStore
+         * @static
+         * @type {Object}
+         */
+        this.assetStore = {images: {}, sounds: {}};
+
+        /**
          * DOM canvas element to draw to
          *
          * @property canvas
@@ -180,25 +206,102 @@ define(function () {
         };
 
         /**
-         * Create and initialize canvas element
+         * Create and initialize canvas element and get
+         * access to local store/indexdb for image cache
          *
          * @method init
+         * @param {Array} imagePaths
+         * @param {Array} soundPaths
          * @param {Element} container
          * @param {Number} viewScale
+         * @param {Function} readyCallback
          */
-        Stage.prototype.init = function (container, viewScale) {
+        Stage.prototype.init = function (imagePaths, soundPaths, container, viewScale, readyCallback) {
+            console.log("Initializing the stage");
             this.canvas = document.createElement('canvas');
             this.canvas.style.width = '100%';
             this.canvas.style.height = '100%';
-
             this.container = container || this.container;
             this.container.appendChild(this.canvas);
-
             this.viewScale = viewScale || this.viewScale;
-
             this.setViewResponsive();
 
-            this.bindEvents();
+            this.initializeAssetStore(function () {
+                this.preloadAssets(imagePaths, soundPaths, function () {
+                    this.bindEvents();
+                    if (readyCallback)
+                        readyCallback();
+                });
+            });
+        };
+
+        /**
+         * Initialize the local storage
+         *
+         * @method initializeAssetStore
+         * @param {Function} readyCallback
+         */
+        Stage.prototype.initializeAssetStore = function (readyCallback) {
+            var request = indexedDB.open("assetDB", this.assetDBVersion);
+            if (!request) {
+                if (readyCallback)
+                    readyCallback.call(this);
+                return false;
+            }
+
+            console.log("Initializing AssetStore");
+            var self = this;
+            request.onerror = function (event) {
+                self.assetDB = request.result;
+                window.indexedDB = false;
+                console.log("IndexedDB error", event);
+            };
+            request.onsuccess = function () {
+                console.log("Initializing AssetDB");
+                self.assetDB = request.result;
+                self.assetDB.onerror = function (event) {
+                    self.assetDB = false;
+                    window.indexedDB = false;
+                    console.log("AssetDB error", event);
+                };
+                var assetType = "images";
+                var objectStore = self.assetDB.transaction(assetType).objectStore(assetType);
+                objectStore.count().onsuccess = function (event) {
+                    var assetCount = event.target.result;
+                    if (assetCount > 0) {
+                        var assetsLoaded = 0;
+                        objectStore.openCursor().onsuccess = function (event) {
+                            assetsLoaded++;
+                            if (self.loadingTickCallback)
+                                self.loadingTickCallback((assetsLoaded / assetCount) / 2);
+                            var cursor = event.target.result;
+                            if (cursor) {
+                                var asset = assetType === 'images' ? new Image() : new Audio();
+                                asset.crossOrigin = 'anonymous';
+                                asset.onerror = function () {
+                                    delete self.assetStore[assetType][cursor.key];
+                                };
+                                asset.src = 'data:image/png;base64,' + cursor.value.data;
+                                self.assetStore[assetType][cursor.key] = asset;
+                                cursor.continue();
+                            } else {
+                                if (readyCallback)
+                                    readyCallback.call(self);
+                            }
+                        };
+                    } else {
+                        //self.assetDB.transaction(["images"], "readwrite").objectStore("images").clear();
+                        //self.assetDB = false;
+                        if (readyCallback)
+                            readyCallback.call(self);
+                    }
+                };
+            };
+            request.onupgradeneeded = function (event) {
+                console.log("Initializing empty AssetDB");
+                event.target.result.createObjectStore("images", {keyPath: "path"});
+                event.target.result.createObjectStore("sounds", {keyPath: "path"});
+            };
         };
 
         /**
@@ -220,6 +323,42 @@ define(function () {
                 if (assetsToLoad === 0)
                     assetsLoadedCallback();
             });
+        };
+
+        /**
+         * Preload assets
+         *
+         * @method preloadAssets
+         * @param {Array} imagePaths
+         * @param {Array} soundPaths
+         * @param {Function} readyCallback
+         */
+        Stage.prototype.preloadAssets = function (imagePaths, soundPaths, readyCallback) {
+            var self = this;
+            var assetCount = imagePaths.length + soundPaths.length;
+            var assetsLoaded = 0;
+            function assetLoaded() {
+                assetsLoaded++;
+                if (self.loadingTickCallback)
+                    self.loadingTickCallback(0.5 + ((assetsLoaded / assetCount) / 2));
+                if (assetsLoaded === assetCount && readyCallback)
+                    readyCallback.call(self);
+            }
+            for (var index in imagePaths) {
+                var path = imagePaths[index];
+                if (!this.assetStore['images'][path]) {
+                    if (this.assetDB) {
+                        this.writeToAssetDB('images', path, assetLoaded);
+                    } else {
+                        this.assetStore['images'][path] = new Image();
+                        this.assetStore['images'][path].addEventListener("load", assetLoaded);
+                        this.assetStore['images'][path].crossOrigin = 'anonymous';
+                        this.assetStore['images'][path].src = path;
+                    }
+                } else {
+                    assetLoaded();
+                }
+            }
         };
 
         /**
@@ -267,6 +406,50 @@ define(function () {
         Stage.prototype.stop = function () {
             this.running = false;
         };
+
+        /**
+         * Save image to local storage
+         *
+         * @method writeToImageDB
+         * @param {String} list
+         * @param {String} path
+         * @param {Function} readyCallback
+         */
+        Stage.prototype.writeToAssetDB = function (list, path, readyCallback) {
+            var self = this;
+            var asset = list === 'sounds' ? new Audio() : new Image();
+            asset.crossOrigin = 'anonymous';
+            asset.addEventListener("load", function () {
+                var data = list === 'sounds' ? asset : getBase64Image(asset);
+                self.assetDB.transaction([list], "readwrite")
+                        .objectStore(list)
+                        .put({path: path, data: data});
+                self.assetStore[list][path] = asset;
+                if (readyCallback)
+                    readyCallback.call(self);
+            });
+            asset.src = path;
+        };
+
+        /**
+         * HTML IndexedDB hook
+         *
+         * @property indexedDB
+         * @static
+         * @type {Object}
+         */
+        window.indexedDB = window.indexedDB || window.mozIndexedDB || window.webkitIndexedDB || window.msIndexedDB;
+    }
+
+    function getBase64Image(img) {
+        var canvas = document.createElement("canvas");
+        canvas.width = img.width;
+        canvas.height = img.height;
+        var ctx = canvas.getContext("2d");
+        ctx.drawImage(img, 0, 0);
+        var dataURL = canvas.toDataURL("image/png");
+
+        return dataURL.replace(/^data:image\/(png|jpg);base64,/, "");
     }
 
     return Stage;

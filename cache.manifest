@@ -1,0 +1,8 @@
+CACHE MANIFEST
+# Cache manifest version 0.0.4
+
+NETWORK:
+*
+
+CACHE:
+http://assets.anslemgalaxy.com/

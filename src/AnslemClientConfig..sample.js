@@ -26,6 +26,13 @@ define(function () {
          */
         clientFps: 30,
         /**
+         * Environment
+         *
+         * @propert environment
+         * @type {String}
+         */
+        environment: 'production',
+        /**
          * Game server url
          *
          * @property serverUrl

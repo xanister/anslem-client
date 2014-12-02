@@ -21,6 +21,8 @@ requirejs(
             window.ac = new AnslemClient(AnslemClientConfig.serverUrl);
 
             // Initialize and go ahead and start when ready
-            window.ac.start();
+            window.ac.init(function () {
+                this.start();
+            });
         }
 );

@@ -107,6 +107,68 @@ define(['AnslemClientConfig', 'lib/NodeClient', 'lib/Sprite', 'lib/Stage', 'lib/
         };
 
         /**
+         * Preload assets, connect to server and get everything ready
+         *
+         * @method init
+         * @param {Function} readyCallback
+         */
+        AnslemClient.prototype.init = function (readyCallback) {
+            // Setup the loading indicator
+            var loadingIndicator = document.getElementById("loading-indicator");
+            self.stage.loadingTickCallback = function (percent) {
+                loadingIndicator.value = Math.floor(percent * 100);
+                loadingIndicator.className = percent === 1 ? 'done' : '';
+            };
+
+            // Connect to server and get list of required assets
+            NodeClient.prototype.start.call(this, function (response) {
+                // Load sprites
+                var sprites = response.initialData.assets.sprites;
+                var imagePaths = [];
+                for (var index in sprites) {
+                    for (var animation in sprites[index]) {
+                        var s = sprites[index][animation];
+                        if (s.frameCount > 0 && !s.singleImage) {
+                            for (var i = 0; i < s.frameCount; i++)
+                                imagePaths.push(AnslemClientConfig.assetsUrl + s.imagePath + "__" + zeroPad(i, 3) + '.png');
+                        } else {
+                            imagePaths.push(AnslemClientConfig.assetsUrl + s.imagePath + ".png");
+                        }
+                    }
+                }
+
+                // Load sounds
+                var soundPaths = [];
+
+                // Start up the stage
+                self.stage.targetFps = AnslemClientConfig.clientFps;
+                self.stage.init(imagePaths, soundPaths, document.body, response.initialData.viewScale, function () {
+                    // Create the sprites
+                    for (var index in sprites) {
+                        self.stage.sprites[index] = {};
+                        for (var animation in sprites[index]) {
+                            var s = sprites[index][animation];
+                            var spr = new Sprite();
+                            var path = AnslemClientConfig.assetsUrl + sprites[index][animation].imagePath;
+                            var images = [];
+                            if (s.singleImage) {
+                                images.push(self.stage.assetStore.images[path + ".png"]);
+                            } else {
+                                for (var i = 0; i < s.frameCount; i++)
+                                    images.push(self.stage.assetStore[images][path + "__" + zeroPad(i, 3) + '.png']);
+                            }
+                            spr.setImages(images, s.frameCount, s.frameSpeed, s.xOffset, s.yOffset);
+                            self.stage.sprites[index][animation] = spr;
+                        }
+                    }
+                    // Good to go
+                    if (readyCallback)
+                        readyCallback.call(self);
+                });
+            });
+        };
+
+        /**
          * Show message to client
          *
          * @method showMessage
@@ -125,38 +187,8 @@ define(['AnslemClientConfig', 'lib/NodeClient', 'lib/Sprite', 'lib/Stage', 'lib/
          * @method start
          */
         AnslemClient.prototype.start = function () {
-            var loadingIndicator = document.getElementById("loading-indicator");
-            NodeClient.prototype.start.call(this, function (response) {
-                var sprites = response.initialData.assets.sprites;
-                var spriteCount = 0;
-                for (var index in sprites) {
-                    spriteCount += Object.keys(sprites[index]).length;
-                }
-                self.stage.init(document.body, response.initialData.viewScale);
-                self.stage.loadingTickCallback = function (percent) {
-                    loadingIndicator.value = percent * 100;
-                    if (percent === 1)
-                        loadingIndicator.className = 'done';
-                };
-                self.stage.loadAssets(
-                        spriteCount,
-                        function (assetLoadedCallback) {
-                            for (var index in sprites) {
-                                self.stage.sprites[index] = {};
-                                for (var animation in sprites[index]) {
-                                    var s = sprites[index][animation];
-                                    self.stage.sprites[index][animation] = new Sprite(AnslemClientConfig.assetsUrl + s.imagePath, s.frameCount, s.frameSpeed, assetLoadedCallback, s.singleImage, s.xOffset, s.yOffset);
-                                }
-                            }
-                            self.stage.sounds = {};
-                        },
-                        function () {
-                            self.stage.targetFps = AnslemClientConfig.clientFps;
-                            self.stage.start(self.render);
-                            self.bindEvents();
-                        }
-                );
-            });
+            this.bindEvents();
+            this.stage.start(self.render);
         };
 
         /**
@@ -168,6 +200,22 @@ define(['AnslemClientConfig', 'lib/NodeClient', 'lib/Sprite', 'lib/Stage', 'lib/
             this.stage.stop();
         };
     }
+
+    /**
+     * Return zero padded number
+     *
+     * @method zeroPad
+     * @param {String} subject
+     * @param {Number} width
+     * @param {Number} char
+     * @return {String}
+     */
+    this.zeroPad = function (subject, width, char) {
+        char = char || '0';
+        subject = subject + '';
+        return subject.length >= width ? subject : new Array(width - subject.length + 1).join(char) + subject;
+    };
+
     AnslemClient.prototype = new NodeClient();
     AnslemClient.prototype.constructor = AnslemClient;
 
