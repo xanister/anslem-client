@@ -49,3 +49,31 @@ body{
 #loading-indicator.done{
     width: 0%;
 }
+
+#text-input{
+    width: 50%;
+    height: 80px;
+    max-width: 300px;
+    padding: 10px;
+
+    position: absolute;
+    left: 50%;
+    top: 50%;
+
+    font-size: 30px;
+
+    border-radius: 10px;
+
+    transform: scale(1) translateX(-50%) translateY(-50%);
+    -webkit-transform: scale(1) translateX(-50%) translateY(-50%);
+
+    transition: all 500ms ease-in-out;
+    -webkit-transition: all 500ms ease-in-out;
+}
+
+#text-input.hidden{
+    transform: scale(0);
+    -webkit-transform: scale(0);
+
+    opacity: 0;
+}

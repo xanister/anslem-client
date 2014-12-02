@@ -67,7 +67,7 @@ define(function () {
          * @property defaultFont
          * @type {String}
          */
-        this.defaultFont = "bold 80px Arial";
+        this.defaultFont = "60px arial";
 
         /**
          * Is the client running a mobile device
@@ -92,6 +92,14 @@ define(function () {
          * @type {Function}
          */
         this.loadingTickCallback = false;
+
+        /**
+         * Paused flag
+         *
+         * @property paused
+         * @type {Boolean}
+         */
+        this.paused = false;
 
         /**
          * Running flag
@@ -163,7 +171,12 @@ define(function () {
             ctx.font = font || this.defaultFont;
             var messageWidth = ctx.measureText(message).width;
 
-            this.drawText(message, tarX - (messageWidth / 2), tarY, font, fillStyle);
+            this.drawRoundRect(tarX - (messageWidth / 2) - 10, tarY - 60, messageWidth + 40, 120, 10, "white", false);
+            ctx.font = font || this.defaultFont;
+            ctx.textBaseline = "middle";
+            ctx.textAlign = "center";
+            ctx.fillStyle = fillStyle || "black";
+            ctx.fillText(message, tarX, tarY);
         };
 
         /**
@@ -410,7 +423,8 @@ define(function () {
                 if (--framesSkipped <= 0) {
                     framesSkipped = frameSkip;
                     ctx.clearRect(0, 0, self.canvas.width, self.canvas.height);
-                    renderCallback(ctx);
+                    if (!self.paused)
+                        renderCallback(ctx);
                     self.currentFps = Math.round(1000 / (timestamp - startTime));
                     startTime = timestamp;
                 }

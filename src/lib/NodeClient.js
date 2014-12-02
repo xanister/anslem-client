@@ -4,7 +4,7 @@
  * @module NodeClient
  * @requires socket.io
  */
-define(['lib/socket.io', 'lib/hammer'], function (io, Hammer) {
+define(['socket.io', 'hammer'], function (io, Hammer) {
     /**
      * NodeClient
      *
@@ -72,6 +72,14 @@ define(['lib/socket.io', 'lib/hammer'], function (io, Hammer) {
          * @type {String}
          */
         this.id = false;
+
+        /**
+         * Inform server of user input
+         *
+         * @property inputEnabled
+         * @type {Boolean}
+         */
+        this.inputEnabled = true;
 
         /**
          * Client inputs
@@ -152,7 +160,8 @@ define(['lib/socket.io', 'lib/hammer'], function (io, Hammer) {
          * @param {Object} inputs
          */
         NodeClient.prototype.inputUpdate = function (inputs) {
-            socket.emit("clientInput", inputs);
+            if (this.inputEnabled && !this.paused)
+                socket.emit("clientInput", inputs);
             this.inputs.events = this.getEmptyInputEvents();
             this.inputs.message = false;
         };
@@ -296,6 +305,8 @@ define(['lib/socket.io', 'lib/hammer'], function (io, Hammer) {
              * @param {Object} response
              */
             socket.on("update", function (response) {
+                if (nodeClient.paused)
+                    return false;
                 nodeClient.data.packet = response.packet;
                 if (nodeClient.updateCallback)
                     nodeClient.updateCallback.call(nodeClient, response);

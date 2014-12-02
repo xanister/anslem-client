@@ -4,7 +4,7 @@
  * @module Anslem
  * @requires AnslemClientConfig, NodeClient, Sprite, Stage, howler
  */
-define(['AnslemClientConfig', 'lib/NodeClient', 'lib/Sprite', 'lib/Stage', 'lib/howler'], function (AnslemClientConfig, NodeClient, Sprite, Stage) {
+define(['AnslemClientConfig', 'jquery', 'jquery.keyboard', 'NodeClient', 'Sprite', 'Stage', 'howler'], function (AnslemClientConfig, $, keyboard, NodeClient, Sprite, Stage) {
     /**
      * Anslem game client wrapper
      *
@@ -45,14 +45,49 @@ define(['AnslemClientConfig', 'lib/NodeClient', 'lib/Sprite', 'lib/Stage', 'lib/
          * @method bindEvents
          */
         this.bindEvents = function () {
-            document.addEventListener("keydown", function (e) {
+            document.addEventListener("keyup", function (e) {
                 var code = e.keyCode || e.which;
-                if (code === 13)
-                    self.messageInput();
+                if (code === 13) {
+                    if (self.textInput.className === "") {
+                        self.textInput.blur();
+                    } else {
+                        self.textInput.style.left = (self.data.packet.x - self.data.packet.viewX) / self.stage.viewScale + "px";
+                        self.textInput.style.top = (self.data.packet.y - self.data.packet.viewY - self.data.packet.height) / self.stage.viewScale + "px";
+                        self.textInput.className = "";
+                        self.textInput.value = 'Say...';
+                        self.textInput.selectionStart = 0;
+                        self.textInput.selectionEnd = 6;
+                        self.textInput.focus();
+                        return false;
+                    }
+                }
             });
 
-            document.addEventListener("swipedown", function (e) {
-                self.messageInput();
+            document.addEventListener("swipedown", function () {
+                self.textInput.className = "";
+                self.textInput.value = '';
+            });
+
+            this.textInput.addEventListener("keydown", function () {
+                if (this.value.length > 32)
+                    this.value = this.value.substr(0, 32);
+            });
+
+            this.textInput.addEventListener("focus", function () {
+                self.inputs.events = self.getEmptyInputEvents();
+                self.inputs.keboard = {};
+                self.inputs.touches = {};
+                self.inputUpdate.call(self, self.inputs);
+                self.inputEnabled = false;
+            });
+
+            this.textInput.addEventListener("blur", function () {
+                self.inputEnabled = true;
+                this.className = "hidden";
+                if (this.value.length > 0) {
+                    self.inputs.message = this.value;
+                    self.inputUpdate.call(self, self.inputs);
+                }
             });
         };
 
@@ -64,19 +99,6 @@ define(['AnslemClientConfig', 'lib/NodeClient', 'lib/Sprite', 'lib/Stage', 'lib/
          */
         this.errorCallback = function (response) {
             this.showMessage(response.message);
-        };
-
-        /**
-         * Get message from client and send to server
-         *
-         * @method messageInput
-         */
-        this.messageInput = function () {
-            this.stage.stop();
-            var message = prompt("Say:");
-            this.stage.start(this.render);
-            self.inputs.message = message;
-            self.inputUpdate.call(self, self.inputs);
         };
 
         /**
@@ -100,10 +122,10 @@ define(['AnslemClientConfig', 'lib/NodeClient', 'lib/Sprite', 'lib/Stage', 'lib/
                 else
                     sprite.draw(ctx, e.sprite.frame, e.x - (sprite.width / 2) - self.data.packet.viewX, e.y - (sprite.height / 2) - self.data.packet.viewY, e.sprite.mirror);
                 if (e.bubble)
-                    self.stage.drawBubble(e.bubble.message, e.x - self.data.packet.viewX, e.y - (sprite.height / 2) - self.data.packet.viewY);
+                    self.stage.drawBubble(e.bubble.message, e.x - self.data.packet.viewX, e.y - sprite.height - self.data.packet.viewY);
             }
             if (self.debugging)
-                self.stage.drawText(self.stage.currentFps, 50, 100, "bold 100px Arial", "red");
+                self.stage.drawText(self.stage.currentFps, 50, 100, "bold 100px arial", "red");
         };
 
         /**
@@ -114,11 +136,22 @@ define(['AnslemClientConfig', 'lib/NodeClient', 'lib/Sprite', 'lib/Stage', 'lib/
          */
         AnslemClient.prototype.init = function (readyCallback) {
             // Setup the loading indicator
-            var loadingIndicator = document.getElementById("loading-indicator");
+            var loadingIndicator = document.createElement("progress");
+            loadingIndicator.id = "loading-indicator";
+            loadingIndicator.max = 100;
+            loadingIndicator.value = 0
+            this.stage.container.appendChild(loadingIndicator);
             self.stage.loadingTickCallback = function (percent) {
                 loadingIndicator.value = Math.floor(percent * 100);
                 loadingIndicator.className = percent === 1 ? 'done' : '';
             };
+
+            // Create the virtual keyboard
+            this.textInput = document.createElement("textarea");
+            this.textInput.id = "text-input";
+            this.textInput.className = "hidden";
+            this.textInput.rows = 2;
+            document.body.appendChild(this.textInput);
 
             // Connect to server and get list of required assets
             NodeClient.prototype.start.call(this, function (response) {
