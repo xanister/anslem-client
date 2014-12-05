@@ -9,45 +9,33 @@ html,body{
 
 body{
     position: relative;
-
-    background-size: cover;
-    background-image: url(bg-night.png);
 }
 
-#client-messages{
-    width: 200px;
-    position: absolute;
-    z-index: 10;
-    left: 0;
-    top: 0;
-}
-
-.client-message{
-    margin: 5vw;
-    padding: 3vw;
-
-    position: relative;
-
-    border-radius: 5px;
-    border: 1px solid black;
+canvas{
+    width: 100%;
+    height: 100%;
 }
 
 #loading-indicator{
-    width: 40%;
+    width: 0%;
 
     position: absolute;
     left: 50%;
     top: 50%;
 
+    opacity: 0;
+
     transform: translateX(-50%) translateY(-50%);
     -webkit-transform: translateX(-50%) translateY(-50%);
 
-    transition: all 500ms ease-in-out;
-    -webkit-transition: all 500ms ease-in-out;
+    transition: all 100ms ease-in-out;
+    -webkit-transition: all 100ms ease-in-out;
 }
 
-#loading-indicator.done{
-    width: 0%;
+#loading-indicator.active{
+    width: 40%;
+
+    opacity: 1;
 }
 
 #text-input{
@@ -62,18 +50,20 @@ body{
 
     font-size: 30px;
 
+    opacity: 0;
+
     border-radius: 10px;
 
-    transform: scale(1) translateX(-50%) translateY(-50%);
-    -webkit-transform: scale(1) translateX(-50%) translateY(-50%);
-
-    transition: all 500ms ease-in-out;
-    -webkit-transition: all 500ms ease-in-out;
-}
-
-#text-input.hidden{
     transform: scale(0);
     -webkit-transform: scale(0);
 
-    opacity: 0;
+    transition: all 100ms ease-in-out;
+    -webkit-transition: all 100ms ease-in-out;
+}
+
+#text-input.active{
+    opacity: 1;
+
+    transform: scale(1) translateX(-50%) translateY(-50%);
+    -webkit-transform: scale(1) translateX(-50%) translateY(-50%);
 }
