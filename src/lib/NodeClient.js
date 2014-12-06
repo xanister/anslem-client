@@ -29,7 +29,7 @@ define(['socket.io', 'hammer.min'], function (io, Hammer) {
          * @private
          * @type {Object}
          */
-        var hammertime = new Hammer(document.body);
+        var hammertime = new Hammer(document.getElementById('primary-canvas'));
 
         /**
          * Touch velocity required to register a swipe
@@ -130,6 +130,14 @@ define(['socket.io', 'hammer.min'], function (io, Hammer) {
         this.onerror = false;
 
         /**
+         * State changed
+         *
+         * @event
+         * @param {String} newstate
+         */
+        this.onstatechange = false;
+
+        /**
          * Update recieved callback
          *
          * @property onupdate
@@ -144,6 +152,14 @@ define(['socket.io', 'hammer.min'], function (io, Hammer) {
          * @type {String}
          */
         this.serverAddress = serverAddress;
+
+        /**
+         * Client state
+         *
+         * @property state
+         * @type {String}
+         */
+        this.state = "disconnected";
 
         /**
          * Bind server and input events
@@ -173,7 +189,7 @@ define(['socket.io', 'hammer.min'], function (io, Hammer) {
              * @param {Object} response expects {message: 'a message', clientId: 'aclientid', initialData: {someDataObject}}
              */
             socket.on("connection", function (response) {
-                self.connected = true;
+                self.setState("connected");
                 self.initialData = response.initialData;
                 self.id = response.clientId;
                 self.inputs.events = self.getEmptyInputEvents();
@@ -189,8 +205,7 @@ define(['socket.io', 'hammer.min'], function (io, Hammer) {
              * @param {Object} response
              */
             socket.on('connect_error', function (response) {
-                console.log("Socket connect error", response);
-                self.connected = false;
+                this.setState("socket connect error");
                 socket.disconnect();
                 if (self.onerror)
                     self.onerror(response);
@@ -203,7 +218,7 @@ define(['socket.io', 'hammer.min'], function (io, Hammer) {
              * @private
              */
             socket.on('disconnect', function () {
-                self.connected = false;
+                self.setState("disconnected");
                 socket.disconnect();
                 if (self.ondisconnect)
                     self.ondisconnect();
@@ -217,8 +232,7 @@ define(['socket.io', 'hammer.min'], function (io, Hammer) {
              * @param {Object} response
              */
             socket.on('error', function (response) {
-                console.log("Socket error", response);
-                self.connected = false;
+                this.setState("socket error");
                 socket.disconnect();
                 if (self.onerror)
                     self.onerror(response);
@@ -232,11 +246,11 @@ define(['socket.io', 'hammer.min'], function (io, Hammer) {
              * @param {Object} response
              */
             socket.on("update", function (response) {
-                if (self.paused)
-                    return false;
-                self.data.packet = response.packet;
-                if (self.onupdate)
-                    self.onupdate(response);
+                if (self.state === "ready") {
+                    self.data.packet = response.packet;
+                    if (self.onupdate)
+                        self.onupdate(response);
+                }
             });
 
             /**
@@ -246,9 +260,13 @@ define(['socket.io', 'hammer.min'], function (io, Hammer) {
              * @private
              */
             window.addEventListener('orientationchange', function () {
-                self.clientScreenHeight = Math.max(document.documentElement.clientHeight, window.innerHeight || 0);
-                self.clientScreenWidth = Math.max(document.documentElement.clientWidth, window.innerWidth || 0);
-                self.infoUpdate({screenWidth: self.clientScreenWidth, screenHeight: self.clientScreenHeight});
+                var newScreenHeight = Math.max(document.documentElement.clientHeight, window.innerHeight || 0);
+                var newScreenWidth = Math.max(document.documentElement.clientWidth, window.innerWidth || 0);
+                if (newScreenWidth !== self.clientScreenWidth || newScreenHeight !== self.clientScreenHeight) {
+                    self.clientScreenHeight = Math.max(document.documentElement.clientHeight, window.innerHeight || 0);
+                    self.clientScreenWidth = Math.max(document.documentElement.clientWidth, window.innerWidth || 0);
+                    self.infoUpdate({screenWidth: self.clientScreenWidth, screenHeight: self.clientScreenHeight});
+                }
             });
 
             /**
@@ -258,9 +276,13 @@ define(['socket.io', 'hammer.min'], function (io, Hammer) {
              * @private
              */
             window.addEventListener('resize', function () {
-                self.clientScreenHeight = Math.max(document.documentElement.clientHeight, window.innerHeight || 0);
-                self.clientScreenWidth = Math.max(document.documentElement.clientWidth, window.innerWidth || 0);
-                self.infoUpdate({screenWidth: self.clientScreenWidth, screenHeight: self.clientScreenHeight});
+                var newScreenHeight = Math.max(document.documentElement.clientHeight, window.innerHeight || 0);
+                var newScreenWidth = Math.max(document.documentElement.clientWidth, window.innerWidth || 0);
+                if (newScreenWidth !== self.clientScreenWidth || newScreenHeight !== self.clientScreenHeight) {
+                    self.clientScreenHeight = Math.max(document.documentElement.clientHeight, window.innerHeight || 0);
+                    self.clientScreenWidth = Math.max(document.documentElement.clientWidth, window.innerWidth || 0);
+                    self.infoUpdate({screenWidth: self.clientScreenWidth, screenHeight: self.clientScreenHeight});
+                }
             });
 
             /**
@@ -366,17 +388,6 @@ define(['socket.io', 'hammer.min'], function (io, Hammer) {
         };
 
         /**
-         * Update server with client info
-         *
-         * @method infoUpdate
-         * @protected
-         * @param {Object} info
-         */
-        this.infoUpdate = function (info) {
-            socket.emit("clientInfo", info);
-        };
-
-        /**
          * Update server with client inputs
          *
          * @method inputUpdate
@@ -387,6 +398,16 @@ define(['socket.io', 'hammer.min'], function (io, Hammer) {
             if (this.inputEnabled && !this.paused)
                 socket.emit("clientInput", inputs);
             this.inputs.events = this.getEmptyInputEvents();
+        };
+
+        /**
+         * Update server with client info
+         *
+         * @method infoUpdate
+         * @param {Object} info
+         */
+        NodeClient.prototype.infoUpdate = function (info) {
+            socket.emit("clientInfo", info);
         };
 
         /**
@@ -407,7 +428,26 @@ define(['socket.io', 'hammer.min'], function (io, Hammer) {
          * @param {Function} callback
          */
         NodeClient.prototype.on = function (eventName, callback) {
-            socket.on(eventName, callback);
+            var self = this;
+            socket.on(eventName, function (response) {
+                callback.call(self, response);
+            });
+        };
+
+        /**
+         * Updates client state
+         *
+         * @method setState
+         * @param {String} state
+         * @param {Boolean} [updateServer=false]
+         */
+        NodeClient.prototype.setState = function (state, updateServer) {
+            this.state = state;
+            if (updateServer)
+                socket.emit("clientStateChange", state);
+            if (this.state === "ready")
+                this.inputEnabled = true;
+            this.onstatechange(state);
         };
 
         /**
@@ -416,6 +456,7 @@ define(['socket.io', 'hammer.min'], function (io, Hammer) {
          * @method start
          */
         NodeClient.prototype.start = function () {
+            this.setState("initializing");
             socket = io.connect(this.serverAddress, {
                 'sync disconnect on unload': true,
                 'query': "screenSize=" + this.clientScreenWidth + "," + this.clientScreenHeight

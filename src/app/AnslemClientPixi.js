@@ -21,7 +21,10 @@ define(['AnslemClientConfig', 'NodeClient', 'pixi'], function (AnslemClientConfi
          * @private
          * @type {Object}
          */
-        var renderer = PIXI.autoDetectRenderer(this.clientScreenWidth, this.clientScreenHeight);
+        var renderer = PIXI.autoDetectRenderer(this.clientScreenWidth, this.clientScreenHeight, {
+            view: document.getElementById("primary-canvas"),
+            resolution: 1 / window.devicePixelRatio
+        });
 
         /**
          * Stage object
@@ -80,6 +83,8 @@ define(['AnslemClientConfig', 'NodeClient', 'pixi'], function (AnslemClientConfi
          * @param {Object} response
          */
         this.onassetupdate = function (response) {
+            this.setState("loading", true);
+
             var sprites = response.sprites;
             var imagePaths = [];
             for (var index in sprites) {
@@ -88,18 +93,16 @@ define(['AnslemClientConfig', 'NodeClient', 'pixi'], function (AnslemClientConfi
                     imagePaths.push(AnslemClientConfig.assetsUrl + s.imagePath + ".png");
                 }
             }
-            // TODO
-            var soundPaths = [];
+
+            var loadingIndicator = document.getElementById("loading-indicator");
+            loadingIndicator.max = imagePaths.length;
 
             var assetLoader = new PIXI.AssetLoader(imagePaths, true);
-            var assetCount = imagePaths.length;
-            var assetsLoaded = 0;
-            var loadingIndicator = document.getElementById("loading-indicator");
             var self = this;
             assetLoader.onProgress = function () {
-                assetsLoaded++;
-                loadingIndicator.value = Math.floor((assetsLoaded / assetCount) * 100);
-                loadingIndicator.className = loadingIndicator.value === 100 ? '' : 'active';
+                loadingIndicator.value++;
+                loadingIndicator.className = loadingIndicator.value === loadingIndicator.max ? '' : 'active';
+                self.setState("loading (" + loadingIndicator.value + "/" + loadingIndicator.max + ")");
             };
             assetLoader.onComplete = function () {
                 for (var name in sprites) {
@@ -113,8 +116,7 @@ define(['AnslemClientConfig', 'NodeClient', 'pixi'], function (AnslemClientConfi
                         }
                     }
                 }
-                self.inputEnabled = true;
-                self.assetsLoaded = true;
+                self.setState("ready", true);
             };
             assetLoader.load();
         };
@@ -126,9 +128,33 @@ define(['AnslemClientConfig', 'NodeClient', 'pixi'], function (AnslemClientConfi
          * @param {Object} response
          */
         this.onconnect = function (response) {
-            this.viewScale = response.initialData.viewScale;
-            renderer.resize(this.clientScreenWidth * this.viewScale, this.clientScreenHeight * this.viewScale);
-            document.body.appendChild(renderer.view);
+            console.log("Connected");
+            this.setState("waiting");
+            this.infoUpdate({screenWidth: this.clientScreenWidth, screenHeight: this.clientScreenHeight});
+            this.on("viewUpdate", function (view) {
+                console.log("Recieved view update");
+                renderer.resize(view.width, view.height);
+            });
+        };
+
+        /**
+         * Disconnected to server callback
+         *
+         * @event ondisonnect
+         * @param {Object} response
+         */
+        this.ondisconnect = function (response) {
+            console.log("Disconnected");
+        };
+
+        /**
+         * State changed
+         *
+         * @event
+         * @param {String} newstate
+         */
+        this.onstatechange = function (newstate) {
+            console.log("State change: " + newstate);
         };
 
         /**
@@ -139,21 +165,22 @@ define(['AnslemClientConfig', 'NodeClient', 'pixi'], function (AnslemClientConfi
          * @param {Object} response
          */
         this.onupdate = function (response) {
-            if (!this.assetsLoaded)
+            if (this.state !== "ready")
                 return false;
 
-            var maxWidth = (renderer.width > renderer.height ? renderer.width : renderer.height) + 250;
+            var actors = {};
             for (var index in response.packet.inView) {
                 var e = response.packet.inView[index];
                 var actor;
                 if (!this.actors[e.id]) {
-                    actor = e.sprite.tileX ?
-                            new PIXI.TilingSprite(this.sprites[e.sprite.name][e.sprite.animation][e.sprite.frame], maxWidth * this.viewScale, e.height) :
-                            new PIXI.Sprite(this.sprites[e.sprite.name][e.sprite.animation][e.sprite.frame]);
-                    actor.anchor.x = 0.5;
-                    actor.anchor.y = 0.5;
-
-                    this.actors[e.id] = actor;
+                    var maxWidth = e.width * (renderer.resolution * 2), actor;
+                    if (e.sprite.tileX) {
+                        actor = new PIXI.TilingSprite(this.sprites[e.sprite.name][e.sprite.animation][e.sprite.frame], maxWidth, e.height);
+                    } else {
+                        actor = new PIXI.Sprite(this.sprites[e.sprite.name][e.sprite.animation][e.sprite.frame]);
+                        actor.anchor.x = 0.5;
+                        actor.anchor.y = 0.5;
+                    }
                     stage.addChild(actor);
                 } else {
                     actor = this.actors[e.id];
@@ -162,16 +189,22 @@ define(['AnslemClientConfig', 'NodeClient', 'pixi'], function (AnslemClientConfi
                 actor.scale.x = actor.src.sprite.mirror ? -1 : 1;
                 if (actor.src.sprite.tileX) {
                     actor.tilePosition.x = -(response.packet.viewX * actor.src.sprite.scrollSpeed) % actor.src.width;
+                    actor.position.y = actor.src.y - response.packet.viewY - (actor.src.height / 2);
                 } else {
                     actor.position.x = actor.src.x - response.packet.viewX;
+                    actor.position.y = actor.src.y - response.packet.viewY;
                     actor.setTexture(this.sprites[e.sprite.name][e.sprite.animation][e.sprite.frame]);
                     actor.onTextureUpdate();
                 }
-                actor.position.y = actor.src.y - response.packet.viewY;
+                actors[actor.src.id] = actor;
+                delete this.actors[actor.src.id];
             }
-
+            for (var index in this.actors) {
+                stage.removeChild(this.actors[index]);
+            }
+            this.actors = actors;
             if (this.debugging)
-                document.body.setAttribute("fps", renderer.currentFps);
+                document.body.setAttribute("currentFps", renderer.currentFps);
         };
 
         /**
@@ -192,7 +225,6 @@ define(['AnslemClientConfig', 'NodeClient', 'pixi'], function (AnslemClientConfi
             requestAnimFrame(render);
         };
     }
-
     AnslemClient.prototype = new NodeClient();
     AnslemClient.prototype.constructor = AnslemClient;
 

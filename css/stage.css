@@ -11,15 +11,18 @@ body{
     position: relative;
 }
 
-canvas{
+#primary-canvas{
     width: 100%;
     height: 100%;
+
+    -webkit-transform: translateZ(0);
 }
 
 #loading-indicator{
     width: 0%;
 
     position: absolute;
+    z-index: 100;
     left: 50%;
     top: 50%;
 
