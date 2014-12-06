@@ -77,6 +77,21 @@ define(['AnslemClientConfig', 'NodeClient', 'pixi'], function (AnslemClientConfi
         this.viewScale = 1;
 
         /**
+         * Bind events
+         * @method bindEvents
+         */
+        this.bindEvents = function () {
+            var self = this;
+            this.on("viewUpdate", function (view) {
+                console.log("Recieved view update");
+                renderer.resize(view.width, view.height);
+            });
+            document.getElementById("client-state").addEventListener("click", function () {
+                self.connect.call(self);
+            });
+        };
+
+        /**
          * Server has requested client to load some assets
          *
          * @event onassetupdate
@@ -137,10 +152,7 @@ define(['AnslemClientConfig', 'NodeClient', 'pixi'], function (AnslemClientConfi
             console.log("Connected");
             this.setState("requesting assets", true);
             this.infoUpdate({screenWidth: this.clientScreenWidth, screenHeight: this.clientScreenHeight});
-            this.on("viewUpdate", function (view) {
-                console.log("Recieved view update");
-                renderer.resize(view.width, view.height);
-            });
+            this.bindEvents();
         };
 
         /**
@@ -161,7 +173,15 @@ define(['AnslemClientConfig', 'NodeClient', 'pixi'], function (AnslemClientConfi
          */
         this.onstatechange = function (newstate) {
             console.log("State change: " + newstate);
-            document.getElementById('client-state').innerHTML = newstate === "ready" ? "" : newstate;
+            document.getElementById('client-state').innerHTML = newstate;
+            document.body.setAttribute("data-state", newstate);
+
+            switch (newstate) {
+                case "disconnected":
+                    break;
+                case "ready":
+                    break;
+            }
         };
 
         /**

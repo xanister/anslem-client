@@ -9,6 +9,8 @@ html,body{
 
 body{
     position: relative;
+
+    background-color: #111111;
 }
 
 #primary-canvas{
@@ -19,15 +21,13 @@ body{
 }
 
 #loading-indicator{
-    width: 0%;
-    height: 0;
+    width: 40%;
+    height: 20px;
 
     position: absolute;
     z-index: 100;
     left: 50%;
     top: 50%;
-
-    opacity: 0;
 
     transform: translateX(-50%) translateY(-50%);
     -webkit-transform: translateX(-50%) translateY(-50%);
@@ -36,11 +36,12 @@ body{
     -webkit-transition: all 100ms ease-in-out;
 }
 
-#loading-indicator.active{
-    width: 40%;
-    height: 20px;
-
-    opacity: 1;
+body[data-state='disconnected'] #loading-indicator,
+body[data-state='paused'] #loading-indicator,
+body[data-state='ready'] #loading-indicator{
+    width: 0;
+    height: 0;
+    opacity: 0;
 }
 
 #client-state{
@@ -64,6 +65,16 @@ body{
     transition: all 100ms ease-in-out;
     -webkit-transition: all 100ms ease-in-out;
 }
+
+body[data-state='ready'] #client-state{
+    width: 0;
+    height: 0;
+    opacity: 0;
+}
+
+
+
+
 
 #text-input{
     width: 50%;
