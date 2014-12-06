@@ -59,6 +59,8 @@ body[data-state='ready'] #loading-indicator{
     font-family: arial;
     font-size: 16px;
 
+    pointer-events: none;
+
     transform: translateX(-50%) translateY(-50%);
     -webkit-transform: translateX(-50%) translateY(-50%);
 
@@ -72,7 +74,11 @@ body[data-state='ready'] #client-state{
     opacity: 0;
 }
 
-
+body[data-state='socket error'] #client-state,
+body[data-state='socket connect error'] #client-state,
+body[data-state='disconnected'] #client-state{
+    pointer-events: auto;
+}
 
 
 

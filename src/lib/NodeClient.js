@@ -237,6 +237,8 @@ define(['socket.io', 'hammer.min'], function (io, Hammer) {
                 if (self.inputs.keyboard[keyPressed])
                     return false;
                 self.inputs.keyboard[keyPressed] = true;
+                if (!self.inputs.events.keydown)
+                    self.inputs.events.keydown = {};
                 self.inputs.events.keydown[keyPressed] = true;
                 self.inputUpdate.call(self, self.inputs);
             });
@@ -251,6 +253,8 @@ define(['socket.io', 'hammer.min'], function (io, Hammer) {
             document.addEventListener("keyup", function (event) {
                 var keyPressed = String.fromCharCode(event.keyCode);
                 self.inputs.keyboard[keyPressed] = false;
+                if (!self.inputs.events.keyup)
+                    self.inputs.events.keyup = {};
                 self.inputs.events.keyup[keyPressed] = true;
                 self.inputUpdate.call(self, self.inputs);
             });
@@ -341,7 +345,7 @@ define(['socket.io', 'hammer.min'], function (io, Hammer) {
                 self.setState("connected");
                 self.initialData = response.initialData;
                 self.id = response.clientId;
-                self.inputs.events = self.getEmptyInputEvents();
+                self.inputs.events = {};
                 if (self.onconnect)
                     self.onconnect(response);
             });
@@ -405,23 +409,6 @@ define(['socket.io', 'hammer.min'], function (io, Hammer) {
         };
 
         /**
-         * Generate empty event object
-         *
-         * @method getEmptyInputEvents
-         * @protected
-         * @return {Object}
-         */
-        this.getEmptyInputEvents = function () {
-            return {
-                doubletap: false,
-                keydown: {},
-                keyup: {},
-                touchstart: false,
-                touchend: false
-            };
-        };
-
-        /**
          * Update server with client inputs
          *
          * @method inputUpdate
@@ -431,7 +418,7 @@ define(['socket.io', 'hammer.min'], function (io, Hammer) {
         this.inputUpdate = function (inputs) {
             if (this.state === "ready")
                 socket.emit("clientInput", inputs);
-            this.inputs.events = this.getEmptyInputEvents();
+            this.inputs.events = {};
         };
 
         /**
