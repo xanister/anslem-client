@@ -43,6 +43,7 @@ define(['socket.io', 'hammer.min'], function (io, Hammer) {
         /**
          * Client screen height
          *
+         * @property clientScreenHeight
          * @param clientScreenHeight
          * @type {Number}
          */
@@ -51,6 +52,7 @@ define(['socket.io', 'hammer.min'], function (io, Hammer) {
         /**
          * Client screen width
          *
+         * @property clientScreenWidth
          * @param clientScreenWidth
          * @type {Number}
          */
