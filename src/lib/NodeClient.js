@@ -164,97 +164,13 @@ define(['socket.io', 'hammer.min'], function (io, Hammer) {
         this.state = "disconnected";
 
         /**
-         * Bind server and input events
+         * Bind user input events
          *
-         * @method bindEvents
+         * @method bindClientEvents
          * @protected
          */
-        this.bindEvents = function () {
+        this.bindClientEvents = function () {
             var self = this;
-            /**
-             * On connect
-             *
-             * @event connection
-             * @private
-             * @param {Object} response expects {message: 'a message', clientId: 'aclientid', initialData: {someDataObject}}
-             */
-            socket.on("assetUpdate", function (response) {
-                if (self.onassetupdate)
-                    self.onassetupdate(response);
-            });
-
-            /**
-             * On connect
-             *
-             * @event connection
-             * @private
-             * @param {Object} response expects {message: 'a message', clientId: 'aclientid', initialData: {someDataObject}}
-             */
-            socket.on("connection", function (response) {
-                self.setState("connected");
-                self.initialData = response.initialData;
-                self.id = response.clientId;
-                self.inputs.events = self.getEmptyInputEvents();
-                if (self.onconnect)
-                    self.onconnect(response);
-            });
-
-            /**
-             * Connection error
-             *
-             * @event connect_error
-             * @private
-             * @param {Object} response
-             */
-            socket.on('connect_error', function (response) {
-                this.setState("socket connect error");
-                socket.disconnect();
-                if (self.onerror)
-                    self.onerror(response);
-            });
-
-            /**
-             * On disconnect
-             *
-             * @event disconnect
-             * @private
-             */
-            socket.on('disconnect', function () {
-                self.setState("disconnected");
-                socket.disconnect();
-                if (self.ondisconnect)
-                    self.ondisconnect();
-            });
-
-            /**
-             * On error
-             *
-             * @event error
-             * @private
-             * @param {Object} response
-             */
-            socket.on('error', function (response) {
-                this.setState("socket error");
-                socket.disconnect();
-                if (self.onerror)
-                    self.onerror(response);
-            });
-
-            /**
-             * On update
-             *
-             * @event update
-             * @private
-             * @param {Object} response
-             */
-            socket.on("update", function (response) {
-                if (self.state === "ready") {
-                    self.data.packet = response.packet;
-                    if (self.onupdate)
-                        self.onupdate(response);
-                }
-            });
-
             /**
              * Update server with new screen size on orientation change
              *
@@ -285,6 +201,28 @@ define(['socket.io', 'hammer.min'], function (io, Hammer) {
                     self.clientScreenWidth = Math.max(document.documentElement.clientWidth, window.innerWidth || 0);
                     self.infoUpdate({screenWidth: self.clientScreenWidth, screenHeight: self.clientScreenHeight});
                 }
+            });
+
+            /**
+             * Client resumes
+             *
+             * @event focus
+             * @private
+             * @param {Event} event
+             */
+            window.addEventListener("focus", function (event) {
+                self.unpause();
+            });
+
+            /**
+             * Client leaves
+             *
+             * @event blur
+             * @private
+             * @param {Event} event
+             */
+            window.addEventListener("blur", function (event) {
+                self.pause();
             });
 
             /**
@@ -353,22 +291,116 @@ define(['socket.io', 'hammer.min'], function (io, Hammer) {
                         }
 
                         self.inputs.events.touchend = {
-                            x: event.changedPointers[0].clientX,
-                            y: event.changedPointers[0].clientX
+                            x: event.changedPointers[0].screenX * window.devicePixelRatio,
+                            y: event.changedPointers[0].screenY * window.devicePixelRatio
                         };
                         break;
                     case 'panstart':
                         self.inputs.events.touchstart = {
-                            x: event.changedPointers[0].clientX,
-                            y: event.changedPointers[0].clientX
+                            x: event.changedPointers[0].clientX * window.devicePixelRatio,
+                            y: event.changedPointers[0].clientY * window.devicePixelRatio
                         };
                     default:
                         self.inputs.touches[0] = {
-                            x: event.changedPointers[0].clientX,
-                            y: event.changedPointers[0].clientX
+                            x: event.changedPointers[0].clientX * window.devicePixelRatio,
+                            y: event.changedPointers[0].clientY * window.devicePixelRatio
                         };
                 }
                 self.inputUpdate.call(self, self.inputs);
+            });
+        };
+
+        /**
+         * Bind server events
+         *
+         * @method bindServerEvents
+         * @protected
+         */
+        this.bindServerEvents = function () {
+            var self = this;
+            /**
+             * On connect
+             *
+             * @event connection
+             * @private
+             * @param {Object} response expects {message: 'a message', clientId: 'aclientid', initialData: {someDataObject}}
+             */
+            socket.on("assetUpdate", function (response) {
+                if (self.onassetupdate)
+                    self.onassetupdate(response);
+            });
+
+            /**
+             * On connect
+             *
+             * @event connection
+             * @private
+             * @param {Object} response expects {message: 'a message', clientId: 'aclientid', initialData: {someDataObject}}
+             */
+            socket.on("connection", function (response) {
+                self.setState("connected");
+                self.initialData = response.initialData;
+                self.id = response.clientId;
+                self.inputs.events = self.getEmptyInputEvents();
+                if (self.onconnect)
+                    self.onconnect(response);
+            });
+
+            /**
+             * Connection error
+             *
+             * @event connect_error
+             * @private
+             * @param {Object} response
+             */
+            socket.on('connect_error', function (response) {
+                self.setState("socket connect error");
+                socket.disconnect();
+                if (self.onerror)
+                    self.onerror(response);
+            });
+
+            /**
+             * On disconnect
+             *
+             * @event disconnect
+             * @private
+             */
+            socket.on('disconnect', function () {
+                self.setState("disconnected");
+                socket.disconnect();
+                socket = false;
+                if (self.ondisconnect)
+                    self.ondisconnect();
+            });
+
+            /**
+             * On error
+             *
+             * @event error
+             * @private
+             * @param {Object} response
+             */
+            socket.on('error', function (response) {
+                this.setState("socket error");
+                socket.disconnect();
+                if (self.onerror)
+                    self.onerror(response);
+            });
+
+            /**
+             * On update
+             *
+             * @event update
+             * @private
+             * @param {Object} response
+             */
+            socket.on("update", function (response) {
+                if (self.state === "ready") {
+                    self.data.packet = response.packet;
+                    if (self.onupdate)
+                        self.onupdate(response);
+                }
             });
         };
 
@@ -397,9 +429,34 @@ define(['socket.io', 'hammer.min'], function (io, Hammer) {
          * @param {Object} inputs
          */
         this.inputUpdate = function (inputs) {
-            if (this.inputEnabled && !this.paused)
+            if (this.state === "ready")
                 socket.emit("clientInput", inputs);
             this.inputs.events = this.getEmptyInputEvents();
+        };
+
+        /**
+         * Open connection
+         *
+         * @method connect
+         */
+        NodeClient.prototype.connect = function () {
+            this.setState("connecting");
+            socket = io.connect(this.serverAddress, {
+                'forceNew': true,
+                'sync disconnect on unload': true,
+                'query': "screenSize=" + this.clientScreenWidth + "," + this.clientScreenHeight
+            });
+            this.bindServerEvents();
+        };
+
+        /**
+         * Close connection
+         *
+         * @method disconnect
+         */
+        NodeClient.prototype.disconnect = function () {
+            this.setState("disconnecting", true);
+            socket.disconnect();
         };
 
         /**
@@ -437,6 +494,16 @@ define(['socket.io', 'hammer.min'], function (io, Hammer) {
         };
 
         /**
+         * Pause connection
+         *
+         * @method pause
+         */
+        NodeClient.prototype.pause = function () {
+            if (this.state === "ready")
+                this.setState("paused", true);
+        };
+
+        /**
          * Updates client state
          *
          * @method setState
@@ -447,8 +514,6 @@ define(['socket.io', 'hammer.min'], function (io, Hammer) {
             this.state = state;
             if (updateServer)
                 socket.emit("clientStateChange", state);
-            if (this.state === "ready")
-                this.inputEnabled = true;
             this.onstatechange(state);
         };
 
@@ -458,12 +523,19 @@ define(['socket.io', 'hammer.min'], function (io, Hammer) {
          * @method start
          */
         NodeClient.prototype.start = function () {
-            this.setState("initializing");
-            socket = io.connect(this.serverAddress, {
-                'sync disconnect on unload': true,
-                'query': "screenSize=" + this.clientScreenWidth + "," + this.clientScreenHeight
-            });
-            this.bindEvents();
+            if (!socket)
+                this.connect();
+            this.bindClientEvents();
+        };
+
+        /**
+         * Unpause connection
+         *
+         * @method unpause
+         */
+        NodeClient.prototype.unpause = function () {
+            if (this.state === "paused")
+                this.setState("ready", true);
         };
 
         /**

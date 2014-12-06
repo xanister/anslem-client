@@ -83,6 +83,7 @@ define(['AnslemClientConfig', 'NodeClient', 'pixi'], function (AnslemClientConfi
          * @param {Object} response
          */
         this.onassetupdate = function (response) {
+            console.log("Recieved asset update");
             this.setState("loading", true);
 
             var sprites = response.sprites;
@@ -90,8 +91,13 @@ define(['AnslemClientConfig', 'NodeClient', 'pixi'], function (AnslemClientConfi
             for (var index in sprites) {
                 for (var animation in sprites[index]) {
                     var s = sprites[index][animation];
-                    imagePaths.push(AnslemClientConfig.assetsUrl + s.imagePath + ".png");
+                    if (!this.sprites[index] || !this.sprites[index][animation])
+                        imagePaths.push(AnslemClientConfig.assetsUrl + s.imagePath + ".png");
                 }
+            }
+            if (imagePaths.length === 0) {
+                this.setState("ready", true);
+                return true;
             }
 
             var loadingIndicator = document.getElementById("loading-indicator");
@@ -129,7 +135,7 @@ define(['AnslemClientConfig', 'NodeClient', 'pixi'], function (AnslemClientConfi
          */
         this.onconnect = function (response) {
             console.log("Connected");
-            this.setState("waiting");
+            this.setState("requesting assets", true);
             this.infoUpdate({screenWidth: this.clientScreenWidth, screenHeight: this.clientScreenHeight});
             this.on("viewUpdate", function (view) {
                 console.log("Recieved view update");
@@ -155,6 +161,7 @@ define(['AnslemClientConfig', 'NodeClient', 'pixi'], function (AnslemClientConfi
          */
         this.onstatechange = function (newstate) {
             console.log("State change: " + newstate);
+            document.getElementById('client-state').innerHTML = newstate === "ready" ? "" : newstate;
         };
 
         /**

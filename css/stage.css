@@ -20,6 +20,7 @@ body{
 
 #loading-indicator{
     width: 0%;
+    height: 0;
 
     position: absolute;
     z-index: 100;
@@ -37,8 +38,31 @@ body{
 
 #loading-indicator.active{
     width: 40%;
+    height: 20px;
 
     opacity: 1;
+}
+
+#client-state{
+    width: auto;
+    height: 20px;
+
+    position: absolute;
+    z-index: 100;
+    left: 50%;
+    top: 55%;
+
+    color: white;
+
+    line-height: 20px;
+    font-family: arial;
+    font-size: 16px;
+
+    transform: translateX(-50%) translateY(-50%);
+    -webkit-transform: translateX(-50%) translateY(-50%);
+
+    transition: all 100ms ease-in-out;
+    -webkit-transition: all 100ms ease-in-out;
 }
 
 #text-input{
