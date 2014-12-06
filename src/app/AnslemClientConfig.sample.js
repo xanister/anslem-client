@@ -28,7 +28,7 @@ define(function () {
         /**
          * Environment
          *
-         * @propert environment
+         * @property environment
          * @type {String}
          */
         environment: 'production',
