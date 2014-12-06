@@ -44,7 +44,6 @@ define(['socket.io', 'hammer.min'], function (io, Hammer) {
          * Client screen height
          *
          * @property clientScreenHeight
-         * @param clientScreenHeight
          * @type {Number}
          */
         this.clientScreenHeight = Math.max(document.documentElement.clientHeight, window.innerHeight || 0);
@@ -53,18 +52,9 @@ define(['socket.io', 'hammer.min'], function (io, Hammer) {
          * Client screen width
          *
          * @property clientScreenWidth
-         * @param clientScreenWidth
          * @type {Number}
          */
         this.clientScreenWidth = Math.max(document.documentElement.clientWidth, window.innerWidth || 0);
-
-        /**
-         * Connected flag
-         *
-         * @property connected
-         * @type {Boolean}
-         */
-        this.connected = false;
 
         /**
          * Data synced to server
@@ -83,15 +73,6 @@ define(['socket.io', 'hammer.min'], function (io, Hammer) {
         this.id = false;
 
         /**
-         * Inform server of user input, enabled once connected
-         * and ready
-         *
-         * @property inputEnabled
-         * @type {Boolean}
-         */
-        this.inputEnabled = false;
-
-        /**
          * Client inputs
          *
          * @property inputs
@@ -102,7 +83,7 @@ define(['socket.io', 'hammer.min'], function (io, Hammer) {
         /**
          * Asset list recieved
          *
-         * @property onassetupdate
+         * @event onassetupdate
          * @type {Function}
          */
         this.onassetupdate = false;
@@ -110,7 +91,7 @@ define(['socket.io', 'hammer.min'], function (io, Hammer) {
         /**
          * Connection success callback
          *
-         * @property onconnect
+         * @event onconnect
          * @type {Function}
          */
         this.onconnect = false;
@@ -118,7 +99,7 @@ define(['socket.io', 'hammer.min'], function (io, Hammer) {
         /**
          * Disconnect callback
          *
-         * @property ondisconnect
+         * @event ondisconnect
          * @type {Function}
          */
         this.ondisconnect = false;
@@ -126,7 +107,7 @@ define(['socket.io', 'hammer.min'], function (io, Hammer) {
         /**
          * Error callback
          *
-         * @property onerror
+         * @event onerror
          * @type {Function}
          */
         this.onerror = false;
@@ -142,7 +123,7 @@ define(['socket.io', 'hammer.min'], function (io, Hammer) {
         /**
          * Update recieved callback
          *
-         * @property onupdate
+         * @event onupdate
          * @type {Function}
          */
         this.onupdate = false;
@@ -412,7 +393,6 @@ define(['socket.io', 'hammer.min'], function (io, Hammer) {
          * Update server with client inputs
          *
          * @method inputUpdate
-         * @protected
          * @param {Object} inputs
          */
         this.inputUpdate = function (inputs) {

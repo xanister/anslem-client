@@ -45,14 +45,6 @@ define(['AnslemClientConfig', 'NodeClient', 'pixi'], function (AnslemClientConfi
         this.actors = {};
 
         /**
-         * Ready?
-         *
-         * @property assetsLoaded
-         * @type {Boolean}
-         */
-        this.assetsLoaded = false;
-
-        /**
          * Debugging flag
          *
          * @property debugging
@@ -69,16 +61,10 @@ define(['AnslemClientConfig', 'NodeClient', 'pixi'], function (AnslemClientConfi
         this.sprites = {};
 
         /**
-         * Stage zoom
-         *
-         * @property viewScale
-         * @type {Number}
-         */
-        this.viewScale = 1;
-
-        /**
          * Bind events
+         *
          * @method bindEvents
+         * @protected
          */
         this.bindEvents = function () {
             var self = this;
@@ -96,6 +82,7 @@ define(['AnslemClientConfig', 'NodeClient', 'pixi'], function (AnslemClientConfi
          *
          * @event onassetupdate
          * @param {Object} response
+         * @protected
          */
         this.onassetupdate = function (response) {
             console.log("Recieved asset update");
@@ -147,6 +134,7 @@ define(['AnslemClientConfig', 'NodeClient', 'pixi'], function (AnslemClientConfi
          *
          * @event ononnect
          * @param {Object} response
+         * @protected
          */
         this.onconnect = function (response) {
             console.log("Connected");
@@ -160,6 +148,7 @@ define(['AnslemClientConfig', 'NodeClient', 'pixi'], function (AnslemClientConfi
          *
          * @event ondisonnect
          * @param {Object} response
+         * @protected
          */
         this.ondisconnect = function (response) {
             console.log("Disconnected");
@@ -170,6 +159,7 @@ define(['AnslemClientConfig', 'NodeClient', 'pixi'], function (AnslemClientConfi
          *
          * @event
          * @param {String} newstate
+         * @protected
          */
         this.onstatechange = function (newstate) {
             console.log("State change: " + newstate);
@@ -188,8 +178,8 @@ define(['AnslemClientConfig', 'NodeClient', 'pixi'], function (AnslemClientConfi
          * Server update callback, setup the sprites on the stage
          *
          * @event updateCallback
-         * @protected
          * @param {Object} response
+         * @protected
          */
         this.onupdate = function (response) {
             if (this.state !== "ready")
