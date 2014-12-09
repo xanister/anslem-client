@@ -29,7 +29,7 @@ define(['socket.io', 'hammer.min'], function (io, Hammer) {
          * @private
          * @type {Object}
          */
-        var hammertime = new Hammer(document.getElementById('primary-canvas'));
+        //var hammertime = new Hammer(document.body);
 
         /**
          * Touch velocity required to register a swipe
@@ -46,7 +46,7 @@ define(['socket.io', 'hammer.min'], function (io, Hammer) {
          * @property clientScreenHeight
          * @type {Number}
          */
-        this.clientScreenHeight = Math.max(document.documentElement.clientHeight, window.innerHeight || 0);
+        this.clientScreenHeight = window.innerHeight;
 
         /**
          * Client screen width
@@ -54,7 +54,7 @@ define(['socket.io', 'hammer.min'], function (io, Hammer) {
          * @property clientScreenWidth
          * @type {Number}
          */
-        this.clientScreenWidth = Math.max(document.documentElement.clientWidth, window.innerWidth || 0);
+        this.clientScreenWidth = window.innerWidth;
 
         /**
          * Data synced to server
@@ -152,6 +152,10 @@ define(['socket.io', 'hammer.min'], function (io, Hammer) {
          */
         this.bindClientEvents = function () {
             var self = this;
+            var touchStartX = {};
+            var touchStartY = {};
+            var touchStartTime = {};
+
             /**
              * Update server with new screen size on orientation change
              *
@@ -159,12 +163,13 @@ define(['socket.io', 'hammer.min'], function (io, Hammer) {
              * @private
              */
             window.addEventListener('orientationchange', function () {
-                var newScreenHeight = Math.max(document.documentElement.clientHeight, window.innerHeight || 0);
-                var newScreenWidth = Math.max(document.documentElement.clientWidth, window.innerWidth || 0);
+                var newScreenWidth = window.innerWidth;
+                var newScreenHeight = window.innerHeight;
+
                 if (newScreenWidth !== self.clientScreenWidth || newScreenHeight !== self.clientScreenHeight) {
-                    self.clientScreenHeight = Math.max(document.documentElement.clientHeight, window.innerHeight || 0);
-                    self.clientScreenWidth = Math.max(document.documentElement.clientWidth, window.innerWidth || 0);
-                    self.infoUpdate({screenWidth: self.clientScreenWidth, screenHeight: self.clientScreenHeight});
+                    self.clientScreenWidth = newScreenWidth;
+                    self.clientScreenHeight = newScreenHeight;
+                    self.infoUpdate({screenWidth: self.clientScreenWidth, screenHeight: self.clientScreenHeight, orientaion: window.orientation});
                 }
             });
 
@@ -175,12 +180,13 @@ define(['socket.io', 'hammer.min'], function (io, Hammer) {
              * @private
              */
             window.addEventListener('resize', function () {
-                var newScreenHeight = Math.max(document.documentElement.clientHeight, window.innerHeight || 0);
-                var newScreenWidth = Math.max(document.documentElement.clientWidth, window.innerWidth || 0);
+                var newScreenWidth = window.innerWidth;
+                var newScreenHeight = window.innerHeight;
+
                 if (newScreenWidth !== self.clientScreenWidth || newScreenHeight !== self.clientScreenHeight) {
-                    self.clientScreenHeight = Math.max(document.documentElement.clientHeight, window.innerHeight || 0);
-                    self.clientScreenWidth = Math.max(document.documentElement.clientWidth, window.innerWidth || 0);
-                    self.infoUpdate({screenWidth: self.clientScreenWidth, screenHeight: self.clientScreenHeight});
+                    self.clientScreenWidth = newScreenWidth;
+                    self.clientScreenHeight = newScreenHeight;
+                    self.infoUpdate({screenWidth: self.clientScreenWidth, screenHeight: self.clientScreenHeight, orientaion: window.orientation});
                 }
             });
 
@@ -241,55 +247,118 @@ define(['socket.io', 'hammer.min'], function (io, Hammer) {
             });
 
             /**
-             * Hammer events
+             * Client touchend
              *
-             * @event doubletap panstart panend panmove pancancel
+             * @event touchend
              * @private
              * @param {Event} event
              */
-            hammertime.get('pan').set({direction: Hammer.DIRECTION_ALL});
-            hammertime.on('tap panstart panend panmove pancancel', function (event) {
-                self.inputs.touches[0] = false;
-                switch (event.type) {
-                    case 'tap':
-                        self.inputs.events["tap" + event.tapCount] = true;
-                        break;
-                    case 'pancancel':
-                        break;
-                    case 'panend':
-                        if (Math.abs(event.velocity) > NodeClient.swipeVelocity) {
-                            switch (event.direction) {
-                                case Hammer.DIRECTION_RIGHT:
-                                    self.inputs.events.swiperight = true;
-                                    break;
-                                case Hammer.DIRECTION_LEFT:
-                                    self.inputs.events.swipeleft = true;
-                                    break;
-                                case Hammer.DIRECTION_UP:
-                                    self.inputs.events.swipeup = true;
-                                    break;
-                                case Hammer.DIRECTION_DOWN:
-                                    self.inputs.events.swipedown = true;
-                                    document.dispatchEvent(new Event("swipedown"));
-                                    break;
-                            }
-                        }
+            document.addEventListener("touchend", function (event) {
+                for (var index = 0; index < event.changedTouches.length; index++) {
+                    var touch = event.changedTouches[index];
+                    self.inputs.events.touchend = {};
+                    self.inputs.events.touchend[touch.identifier] = {
+                        startTime: touchStartTime[touch.identifier],
+                        startX: touchStartX[touch.identifier],
+                        startY: touchStartY[touch.identifier],
+                        x: touch.clientX,
+                        y: touch.clientY
+                    };
+                    var touchTime = new Date().getTime() - touchStartTime[touch.identifier];
+                    if (touchTime < 200) {
+                        var xDist = touch.clientX - touchStartX[touch.identifier];
+                        var yDist = touch.clientY - touchStartY[touch.identifier];
+                        if (xDist > 50)
+                            self.inputs.events.swiperight = {
+                                xDist: xDist,
+                                yDist: yDist
+                            };
+                        else if (xDist < -50)
+                            self.inputs.events.swipeleft = {
+                                xDist: xDist,
+                                yDist: yDist
+                            };
+                        else if (yDist < -50)
+                            self.inputs.events.swipeup = {
+                                xDist: xDist,
+                                yDist: yDist
+                            };
+                        else if (yDist > 50)
+                            self.inputs.events.swipedown = {
+                                xDist: xDist,
+                                yDist: yDist
+                            };
+                    }
+                    delete touchStartX[touch.identifier];
+                    delete touchStartY[touch.identifier];
+                    delete touchStartTime[touch.identifier];
+                    delete self.inputs.touches[touch.identifier];
+                    self.inputs.touches.length--;
+                }
+                self.inputUpdate.call(self, self.inputs);
+            });
 
-                        self.inputs.events.touchend = {
-                            x: event.changedPointers[0].screenX * window.devicePixelRatio,
-                            y: event.changedPointers[0].screenY * window.devicePixelRatio
-                        };
-                        break;
-                    case 'panstart':
-                        self.inputs.events.touchstart = {
-                            x: event.changedPointers[0].clientX * window.devicePixelRatio,
-                            y: event.changedPointers[0].clientY * window.devicePixelRatio
-                        };
-                    default:
-                        self.inputs.touches[0] = {
-                            x: event.changedPointers[0].clientX * window.devicePixelRatio,
-                            y: event.changedPointers[0].clientY * window.devicePixelRatio
-                        };
+            /**
+             * Client touchmove
+             *
+             * @event touchmove
+             * @private
+             * @param {Event} event
+             */
+            document.addEventListener("touchmove", function (event) {
+                event.preventDefault();
+                for (var index = 0; index < event.changedTouches.length; index++) {
+                    var touch = event.changedTouches[index];
+                    self.inputs.events.touchmove = {};
+                    self.inputs.events.touchmove[touch.identifier] = {
+                        startTime: touchStartTime[touch.identifier],
+                        startX: touchStartX[touch.identifier],
+                        startY: touchStartY[touch.identifier],
+                        x: touch.clientX,
+                        y: touch.clientY
+                    };
+                    self.inputs.touches[touch.identifier] = {
+                        startTime: touchStartTime[touch.identifier],
+                        startX: touchStartX[touch.identifier],
+                        startY: touchStartY[touch.identifier],
+                        x: touch.clientX,
+                        y: touch.clientY
+                    };
+                }
+                self.inputUpdate.call(self, self.inputs);
+            });
+
+            /**
+             * Client touchstart
+             *
+             * @event touchstart
+             * @private
+             * @param {Event} event
+             */
+            document.addEventListener("touchstart", function (event) {
+                for (var index = 0; index < event.changedTouches.length; index++) {
+                    var touch = event.changedTouches[index];
+                    touchStartX[touch.identifier] = touch.clientX;
+                    touchStartY[touch.identifier] = touch.clientY;
+                    touchStartTime[touch.identifier] = new Date().getTime();
+
+                    self.inputs.events.touchstart = {};
+                    self.inputs.events.touchmove = {};
+                    self.inputs.events.touchstart[touch.identifier] = self.inputs.events.touchmove[touch.identifier] = {
+                        startTime: touchStartTime[touch.identifier],
+                        startX: touchStartX[touch.identifier],
+                        startY: touchStartY[touch.identifier],
+                        x: touchStartX[touch.identifier],
+                        y: touchStartY[touch.identifier]
+                    };
+                    self.inputs.touches[touch.identifier] = {
+                        startTime: touchStartTime[touch.identifier],
+                        startX: touchStartX[touch.identifier],
+                        startY: touchStartY[touch.identifier],
+                        x: touchStartX[touch.identifier],
+                        y: touchStartY[touch.identifier]
+                    };
+                    self.inputs.touches.length = self.inputs.touches.length ? self.inputs.touches.length + 1 : 1;
                 }
                 self.inputUpdate.call(self, self.inputs);
             });
@@ -327,6 +396,12 @@ define(['socket.io', 'hammer.min'], function (io, Hammer) {
                 self.initialData = response.initialData;
                 self.id = response.clientId;
                 self.inputs.events = {};
+                self.infoUpdate({
+                    screenWidth: self.clientScreenWidth,
+                    screenHeight: self.clientScreenHeight,
+                    orientaion: window.orientaion,
+                    pixelRatio: window.devicePixelRatio
+                });
                 if (self.onconnect)
                     self.onconnect(response);
             });
@@ -367,7 +442,7 @@ define(['socket.io', 'hammer.min'], function (io, Hammer) {
              * @param {Object} response
              */
             socket.on('error', function (response) {
-                this.setState("socket error");
+                self.setState("socket error");
                 socket.disconnect();
                 if (self.onerror)
                     self.onerror(response);
@@ -387,18 +462,6 @@ define(['socket.io', 'hammer.min'], function (io, Hammer) {
                         self.onupdate(response);
                 }
             });
-        };
-
-        /**
-         * Update server with client inputs
-         *
-         * @method inputUpdate
-         * @param {Object} inputs
-         */
-        this.inputUpdate = function (inputs) {
-            if (this.state === "ready")
-                socket.emit("clientInput", inputs);
-            this.inputs.events = {};
         };
 
         /**
@@ -434,6 +497,18 @@ define(['socket.io', 'hammer.min'], function (io, Hammer) {
          */
         NodeClient.prototype.infoUpdate = function (info) {
             socket.emit("clientInfo", info);
+        };
+
+        /**
+         * Update server with client inputs
+         *
+         * @method inputUpdate
+         * @param {Object} inputs
+         */
+        NodeClient.prototype.inputUpdate = function (inputs) {
+            if (this.state === "ready")
+                socket.emit("clientInput", inputs);
+            this.inputs.events = {};
         };
 
         /**

@@ -1,0 +1,130 @@
+html,body{
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    padding: 0;
+
+    overflow: hidden;
+}
+
+body{
+    position: relative;
+
+    background-color: #111111;
+}
+
+canvas{
+    width: 100%;
+    height: 100%;
+
+    -webkit-transform: translateZ(0);
+}
+
+#loading-indicator{
+    width: 40%;
+    height: 20px;
+
+    position: absolute;
+    z-index: 100;
+    left: 50%;
+    top: 50%;
+
+    transform: translateX(-50%) translateY(-50%);
+    -webkit-transform: translateX(-50%) translateY(-50%);
+
+    transition: all 100ms ease-in-out;
+    -webkit-transition: all 100ms ease-in-out;
+}
+
+body[data-state='disconnected'] #loading-indicator,
+body[data-state='paused'] #loading-indicator,
+body[data-state='ready'] #loading-indicator{
+    width: 0;
+    height: 0;
+    opacity: 0;
+}
+
+#state-indicator{
+    width: auto;
+    height: 20px;
+
+    position: absolute;
+    z-index: 100;
+    left: 50%;
+    top: 55%;
+
+    color: white;
+
+    line-height: 20px;
+    font-family: arial;
+    font-size: 16px;
+
+    cursor: pointer;
+    pointer-events: none;
+
+    transform: translateX(-50%) translateY(-50%);
+    -webkit-transform: translateX(-50%) translateY(-50%);
+
+    transition: all 100ms ease-in-out;
+    -webkit-transition: all 100ms ease-in-out;
+}
+
+body[data-state='ready'] #state-indicator{
+    width: 0;
+    height: 0;
+    opacity: 0;
+}
+
+body[data-state='socket error'] #state-indicator,
+body[data-state='socket connect error'] #state-indicator,
+body[data-state='disconnected'] #state-indicator{
+    pointer-events: auto;
+}
+
+#joystick{
+    width: 100px;
+    height: 100px;
+
+    position: absolute;
+
+    opacity: 0;
+
+    transform: translateX(-50%) translateY(-50%);
+    -webkit-transform: translateX(-50%) translateY(-50%);
+
+    transition: opacity 500ms ease-in-out;
+    -webkit-transition: opacity 500ms ease-in-out;
+
+    background-color: #434343;
+
+    border-radius: 50%;
+}
+
+#joystick span{
+    width: 40%;
+    height: 40%;
+    margin: 10%;
+
+    position: absolute;
+
+    transform: translateX(50%) translateY(50%);
+    -webkit-transform: translateX(50%) translateY(50%);
+
+    background-color: #434343;
+
+    border-radius: 50%;
+}
+
+#joystick[data-active='1']{
+    opacity: 0.6;
+}
+
+.metal {
+    box-shadow: #111111 0px 0px 10px;
+    background-image: -webkit-radial-gradient(  50%   0%,  8% 50%, hsla(0,0%,100%,.5) 0%, hsla(0,0%,100%,0) 100%),                        -webkit-radial-gradient(  50% 100%, 12% 50%, hsla(0,0%,100%,.6) 0%, hsla(0,0%,100%,0) 100%),                        -webkit-radial-gradient(   0%  50%, 50%  7%, hsla(0,0%,100%,.5) 0%, hsla(0,0%,100%,0) 100%),                        -webkit-radial-gradient( 100%  50%, 50%  5%, hsla(0,0%,100%,.5) 0%, hsla(0,0%,100%,0) 100%),                                                -webkit-repeating-radial-gradient(    50% 50%, 100% 100%, hsla(0,0%,  0%,0) 0%, hsla(0,0%,  0%,0)   3%, hsla(0,0%,  0%,.1) 3.5%),                        -webkit-repeating-radial-gradient(    50% 50%, 100% 100%, hsla(0,0%,100%,0) 0%, hsla(0,0%,100%,0)   6%, hsla(0,0%,100%,.1) 7.5%),                        -webkit-repeating-radial-gradient(    50% 50%, 100% 100%, hsla(0,0%,100%,0) 0%, hsla(0,0%,100%,0) 1.2%, hsla(0,0%,100%,.2) 2.2%),                                                -webkit-radial-gradient(    50% 50%, 200% 50%, hsla(0,0%,90%,1) 5%, hsla(0,0%,85%,1) 30%, hsla(0,0%,60%,1) 100%);
+}
+
+.metal span{
+    box-shadow: #111111 0px 0px 10px;
+    background-image: -webkit-radial-gradient(  50%   0%,  8% 50%, hsla(0,0%,100%,.5) 0%, hsla(0,0%,100%,0) 100%),                        -webkit-radial-gradient(  50% 100%, 12% 50%, hsla(0,0%,100%,.6) 0%, hsla(0,0%,100%,0) 100%),                        -webkit-radial-gradient(   0%  50%, 50%  7%, hsla(0,0%,100%,.5) 0%, hsla(0,0%,100%,0) 100%),                        -webkit-radial-gradient( 100%  50%, 50%  5%, hsla(0,0%,100%,.5) 0%, hsla(0,0%,100%,0) 100%),                                                -webkit-repeating-radial-gradient(    50% 50%, 100% 100%, hsla(0,0%,  0%,0) 0%, hsla(0,0%,  0%,0)   3%, hsla(0,0%,  0%,.1) 3.5%),                        -webkit-repeating-radial-gradient(    50% 50%, 100% 100%, hsla(0,0%,100%,0) 0%, hsla(0,0%,100%,0)   6%, hsla(0,0%,100%,.1) 7.5%),                        -webkit-repeating-radial-gradient(    50% 50%, 100% 100%, hsla(0,0%,100%,0) 0%, hsla(0,0%,100%,0) 1.2%, hsla(0,0%,100%,.2) 2.2%),                                                -webkit-radial-gradient(    50% 50%, 200% 50%, hsla(0,0%,90%,1) 5%, hsla(0,0%,85%,1) 30%, hsla(0,0%,60%,1) 100%);
+}
