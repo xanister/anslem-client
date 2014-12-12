@@ -10,7 +10,7 @@ html,body{
 body{
     position: relative;
 
-    background-color: #111111;
+    background-image: url(stars.jpg);
 }
 
 canvas{

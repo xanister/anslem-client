@@ -4,7 +4,7 @@
  * @module NodeClient
  * @requires socket.io
  */
-define(['socket.io', 'hammer.min'], function (io, Hammer) {
+define(['socket.io'], function (io) {
     /**
      * NodeClient
      *
@@ -21,15 +21,6 @@ define(['socket.io', 'hammer.min'], function (io, Hammer) {
          * @type {Object}
          */
         var socket = false;
-
-        /**
-         * Hammer instance
-         *
-         * @property hammertime
-         * @private
-         * @type {Object}
-         */
-        //var hammertime = new Hammer(document.body);
 
         /**
          * Touch velocity required to register a swipe
@@ -55,6 +46,14 @@ define(['socket.io', 'hammer.min'], function (io, Hammer) {
          * @type {Number}
          */
         this.clientScreenWidth = window.innerWidth;
+
+        /**
+         * Is touch device
+         *
+         * @property clientTouchDevice
+         * @type {Boolean}
+         */
+        this.clientTouchDevice = ("ontouchstart" in window || window.DocumentTouch && document instanceof DocumentTouch);
 
         /**
          * Data synced to server
@@ -169,7 +168,7 @@ define(['socket.io', 'hammer.min'], function (io, Hammer) {
                 if (newScreenWidth !== self.clientScreenWidth || newScreenHeight !== self.clientScreenHeight) {
                     self.clientScreenWidth = newScreenWidth;
                     self.clientScreenHeight = newScreenHeight;
-                    self.infoUpdate({screenWidth: self.clientScreenWidth, screenHeight: self.clientScreenHeight, orientaion: window.orientation});
+                    self.infoUpdate({screenWidth: self.clientScreenWidth, screenHeight: self.clientScreenHeight, touchDevice: self.clientTouchDevice, orientaion: window.orientation});
                 }
             });
 
@@ -186,7 +185,7 @@ define(['socket.io', 'hammer.min'], function (io, Hammer) {
                 if (newScreenWidth !== self.clientScreenWidth || newScreenHeight !== self.clientScreenHeight) {
                     self.clientScreenWidth = newScreenWidth;
                     self.clientScreenHeight = newScreenHeight;
-                    self.infoUpdate({screenWidth: self.clientScreenWidth, screenHeight: self.clientScreenHeight, orientaion: window.orientation});
+                    self.infoUpdate({screenWidth: self.clientScreenWidth, screenHeight: self.clientScreenHeight, touchDevice: self.clientTouchDevice, orientaion: window.orientation});
                 }
             });
 
@@ -243,6 +242,55 @@ define(['socket.io', 'hammer.min'], function (io, Hammer) {
                 if (!self.inputs.events.keyup)
                     self.inputs.events.keyup = {};
                 self.inputs.events.keyup[keyPressed] = true;
+                self.inputUpdate.call(self, self.inputs);
+            });
+
+            /**
+             * Mousedown
+             *
+             * @event mousedown
+             * @private
+             * @param {Event} event
+             */
+            document.addEventListener("mousedown", function (event) {
+                if (!self.inputs.events.mousedown)
+                    self.inputs.events.mousedown = {};
+                self.inputs.events.mousedown[event.button] = {
+                    x: event.clientX,
+                    y: event.clientY
+                };
+                self.inputUpdate.call(self, self.inputs);
+            });
+
+            /**
+             * Mousemove
+             *
+             * @event mousedown
+             * @private
+             * @param {Event} event
+             */
+            document.addEventListener("mousemove", function (event) {
+                self.inputs.events.mousemove = {
+                    x: event.clientX,
+                    y: event.clientY
+                };
+                self.inputUpdate.call(self, self.inputs);
+            });
+
+            /**
+             * Mouseup
+             *
+             * @event mousedown
+             * @private
+             * @param {Event} event
+             */
+            document.addEventListener("mouseup", function (event) {
+                if (!self.inputs.events.mouseup)
+                    self.inputs.events.mouseup = {};
+                self.inputs.events.mouseup[event.button] = {
+                    x: event.clientX,
+                    y: event.clientY
+                };
                 self.inputUpdate.call(self, self.inputs);
             });
 
@@ -371,6 +419,7 @@ define(['socket.io', 'hammer.min'], function (io, Hammer) {
          * @protected
          */
         this.bindServerEvents = function () {
+            socket.removeAllListeners;
             var self = this;
             /**
              * On connect
@@ -399,6 +448,7 @@ define(['socket.io', 'hammer.min'], function (io, Hammer) {
                 self.infoUpdate({
                     screenWidth: self.clientScreenWidth,
                     screenHeight: self.clientScreenHeight,
+                    touchDevice: self.clientTouchDevice,
                     orientaion: window.orientaion,
                     pixelRatio: window.devicePixelRatio
                 });
@@ -460,6 +510,7 @@ define(['socket.io', 'hammer.min'], function (io, Hammer) {
                     self.data.packet = response.packet;
                     if (self.onupdate)
                         self.onupdate(response);
+                    self.trigger("updateResponse");
                 }
             });
         };
@@ -565,9 +616,10 @@ define(['socket.io', 'hammer.min'], function (io, Hammer) {
          * @method start
          */
         NodeClient.prototype.start = function () {
-            if (!socket)
+            if (!socket) {
                 this.connect();
-            this.bindClientEvents();
+                this.bindClientEvents();
+            }
         };
 
         /**
@@ -588,7 +640,7 @@ define(['socket.io', 'hammer.min'], function (io, Hammer) {
          * @param {Object} packet
          */
         NodeClient.prototype.trigger = function (eventName, packet) {
-            socket.emit(eventName, packet);
+            socket.emit(eventName, packet || false);
         };
     }
 

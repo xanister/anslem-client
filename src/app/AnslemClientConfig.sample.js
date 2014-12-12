@@ -24,11 +24,11 @@ define(function () {
          * @property clientFps
          * @type {Number}
          */
-        clientFps: 30,
+        clientFps: 60,
         /**
          * Environment
          *
-         * @property environment
+         * @propert environment
          * @type {String}
          */
         environment: 'production',

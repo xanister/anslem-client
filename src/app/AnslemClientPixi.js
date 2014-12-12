@@ -23,7 +23,7 @@ define(['AnslemClientConfig', 'NodeClient', 'pixi'], function (AnslemClientConfi
          */
         var renderer = PIXI.autoDetectRenderer(this.clientScreenWidth, this.clientScreenHeight, {
             resolution: 1,
-            transparent: false
+            transparent: true
         });
         renderer.view.id = "primary-canvas";
         document.body.appendChild(renderer.view);
@@ -110,7 +110,7 @@ define(['AnslemClientConfig', 'NodeClient', 'pixi'], function (AnslemClientConfi
                         );
                 actor.pivot.y = 0.5;
 
-                // Scale far back layer
+                // Scale far back layer TODO: Doesn't work
                 if (e.z === 0) {
                     var scale = e.height / (this.sprites[e.sprite.name][e.sprite.animation][e.sprite.frame].height);
                     actor.scale.x = actor.scale.y = scale;
@@ -134,12 +134,24 @@ define(['AnslemClientConfig', 'NodeClient', 'pixi'], function (AnslemClientConfi
                 actor.addChild(actor.base);
                 actor.base.anchor.x = 0.5;
                 actor.base.anchor.y = 0.5;
-                actor.base.interactive = true;
                 actor.base.srcId = e.id;
+                //actor.hitArea = new PIXI.Rectangle(-actor.base.width / 2, actor.base.width / 2, -actor.base.height / 2, actor.base.height / 2);
                 var self = this;
-                actor.base.tap = actor.base.click = function (event) {
-                    self.onactortap.call(self, event);
+
+                actor.base.interactive = true;
+                actor.base.touchstart = function (event) {
+                    self.inputs.events.actortap = {
+                        id: event.target.parent.src.id
+                    };
+                    self.inputUpdate(self.inputs);
                 };
+                actor.base.mousedown = function (event) {
+                    self.inputs.events.actorclick = {
+                        id: event.target.parent.src.id
+                    };
+                    self.inputUpdate(self.inputs);
+                };
+
 
                 // Add indicator
                 actor.indicator = new PIXI.Sprite(this.sprites["star"]["default"][0]);
@@ -149,25 +161,15 @@ define(['AnslemClientConfig', 'NodeClient', 'pixi'], function (AnslemClientConfi
                 actor.indicator.position.x = 0;
                 actor.indicator.position.y = -(actor.base.height / 2) - (actor.indicator.height / 2);
                 actor.indicator.visible = false;
+
             }
+
+            actor.outOfView = 0;
 
             // Add the new actor to the stage
             this.actorsContainer.addChild(actor);
 
             return actor;
-        };
-
-        /**
-         * Handle user clicks and taps
-         *
-         * @event onactortap
-         * @param {Event} event
-         */
-        this.onactortap = function (event) {
-            this.inputs.events.actortap = {
-                targetId: event.target.srcId
-            };
-            this.inputUpdate(this.inputs);
         };
 
         /**
@@ -297,16 +299,25 @@ define(['AnslemClientConfig', 'NodeClient', 'pixi'], function (AnslemClientConfi
                     actor.base.onTextureUpdate();
 
                     actor.indicator.visible = e.bubble.star ? true : false;
+
+                    if (actor.shadow) {
+                        actor.shadow.position.y = actor.src.belowY - actor.src.y;
+                    }
                 }
 
                 // Add to new list
+                actor.outOfView = 0;
                 actors[actor.src.id] = actor;
                 delete this.actors[actor.src.id];
             }
 
             // Remove non visible actors
-            for (var index in this.actors) {
-                this.actorsContainer.removeChild(this.actors[index]);
+            for (var id in this.actors) {
+                this.actors[id].outOfView++;
+                if (this.actors[id].outOfView > 10)
+                    this.actorsContainer.removeChild(this.actors[id]);
+                else
+                    actors[id] = this.actors[id];
             }
             this.actors = actors;
 
@@ -314,7 +325,11 @@ define(['AnslemClientConfig', 'NodeClient', 'pixi'], function (AnslemClientConfi
             this.actorsContainer.children.sort(function (a, b) {
                 if (a.src.z < b.src.z)
                     return -1;
-                if (a.src.z > b.src.z)
+                else if (a.src.z > b.src.z)
+                    return 1;
+                else if (a.src.x < b.src.x)
+                    return -1;
+                else if (a.src.x > b.src.x)
                     return 1;
                 return 0;
             });
