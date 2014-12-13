@@ -4,7 +4,7 @@
  * @module Anslem
  * @requires AnslemClientConfig, NodeClient, pixi
  */
-define(['AnslemClientConfig', 'NodeClient', 'pixi'], function (AnslemClientConfig, NodeClient, PIXI) {
+define(['AnslemClientConfig', 'NodeClient', 'pixi', 'touchables'], function (AnslemClientConfig, NodeClient, PIXI, Touchables) {
     /**
      * Anslem game client wrapper
      *
@@ -333,9 +333,6 @@ define(['AnslemClientConfig', 'NodeClient', 'pixi'], function (AnslemClientConfi
                     return 1;
                 return 0;
             });
-
-            // Update the dom if needed
-            this.updateDom();
         };
 
         /**
@@ -344,13 +341,19 @@ define(['AnslemClientConfig', 'NodeClient', 'pixi'], function (AnslemClientConfi
          * @method initializeDom
          */
         this.initializeDom = function () {
+            var self = this;
+
             // Joystick
-            this.joystick = document.createElement("div");
-            this.joystick.id = "joystick";
-            this.joystick.className = "metal";
-            this.joystick.knob = document.createElement("span");
-            this.joystick.appendChild(this.joystick.knob);
-            document.body.appendChild(this.joystick);
+            this.joystick = new Touchables.TouchJoystick();
+
+            // keyboard
+            this.keyboard = new Touchables.TouchKeyboard();
+//            this.keyboard.onactivate = function () {
+//                self.pause.call(self);
+//            };
+//            this.keyboard.ondeactivate = function () {
+//                self.unpause.call(self);
+//            };
 
             // Loading indicator
             this.loadingIndicator = document.createElement("progress");
@@ -395,33 +398,7 @@ define(['AnslemClientConfig', 'NodeClient', 'pixi'], function (AnslemClientConfi
          */
         this.updateDom = function () {
             // Joystick
-            if (this.inputs.touches.length === 1) {
-                var touch = this.inputs.touches[Object.keys(this.inputs.touches)[0]];
-                var joyX1 = touch.startX;
-                var joyY1 = touch.startY;
-                var joyX2 = touch.x;
-                var joyY2 = touch.y;
-                var joyRadius = 50;
-
-                if (joyX2 - joyX1 > joyRadius)
-                    joyX2 = joyX1 + joyRadius;
-                else if (joyX1 - joyX2 > joyRadius)
-                    joyX2 = joyX1 - joyRadius;
-                if (joyY2 - joyY1 > joyRadius)
-                    joyY2 = joyY1 + joyRadius;
-                else if (joyY1 - joyY2 > joyRadius)
-                    joyY2 = joyY1 - joyRadius;
-
-                this.joystick.setAttribute("data-active", "1");
-
-                this.joystick.style.left = joyX1 + "px";
-                this.joystick.style.top = joyY1 + "px";
-
-                this.joystick.knob.style.left = (joyX2 - joyX1) + "px";
-                this.joystick.knob.style.top = (joyY2 - joyY1) + "px";
-            } else {
-                this.joystick.setAttribute("data-active", "0");
-            }
+            this.joystick.update(this.inputs.touches);
 
             // Debugging
             if (this.debugging)
@@ -439,11 +416,13 @@ define(['AnslemClientConfig', 'NodeClient', 'pixi'], function (AnslemClientConfi
             this.initializeDom();
 
             var startTime = 1;
+            var self = this;
             function render(timestamp) {
                 renderer.currentFps = Math.round(1000 / (timestamp - startTime));
                 startTime = timestamp;
                 renderer.render(stage);
                 requestAnimFrame(render);
+                self.updateDom();
             }
             requestAnimFrame(render);
         };
