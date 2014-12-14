@@ -1,4 +1,4 @@
-body.keyboard-active{
+body[data-keyboard-active='1']{
     width: 100vw;
     height: 100vh;
 
@@ -7,6 +7,29 @@ body.keyboard-active{
     overflow: hidden;
 
     font-family: arial;
+}
+
+.keyboard-wrapper{
+    width: 100%;
+    height: 100%;
+
+    position: absolute;
+    left: 0;
+    top: 0;
+}
+
+.keyboard-container{
+    width: 100%;
+    height: 100%;
+
+    position: relative;
+}
+
+@media (orientation: portrait){
+    .keyboard-container{
+        margin-top: 10%;
+        height: 90%;
+    }
 }
 
 .keyboard-key{
@@ -19,6 +42,8 @@ body.keyboard-active{
     text-align: center;
 
     cursor: pointer;
+
+    opacity: 0.6;
 
     color: #cccccc;
 
@@ -52,6 +77,10 @@ body.keyboard-active{
     box-sizing: border-box;
 
     background-color: white;
+}
+
+.keyboard-container[data-keyboard-active='1'] .keyboard-toggle{
+    opacity: 1;
 }
 
 .keyboard-value{

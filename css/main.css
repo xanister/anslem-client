@@ -9,18 +9,22 @@ html,body{
 
 body{
     position: relative;
+
+    background-image: url(stars.jpg);
 }
 
 canvas{
     width: 100%;
     height: 100%;
 
-    background-image: url(stars.jpg);
-
+    transform: translateZ(0);
     -webkit-transform: translateZ(0);
 
-    -webkit-filter: blur(5px);
     filter: blur(5px);
+    -webkit-filter: blur(5px);
+
+    transition: -filter 300ms ease-in-out;
+    -webkit-transition: -webkit-filter 300ms ease-in-out;
 }
 
 body[data-state='ready'] canvas{

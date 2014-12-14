@@ -35,7 +35,7 @@ define(['AnslemClientConfig', 'NodeClient', 'pixi', 'touchables'], function (Ans
          * @private
          * @type {Stage}
          */
-        var stage = new PIXI.Stage(0x111111, true);
+        var stage = new PIXI.Stage(0x111111);
 
 
         /**
@@ -79,10 +79,29 @@ define(['AnslemClientConfig', 'NodeClient', 'pixi', 'touchables'], function (Ans
          */
         this.bindEvents = function () {
             var self = this;
+
+            // View update recieved
             this.on("viewUpdate", function (view) {
                 console.log("Recieved view update");
+                renderer.view.className = "pt-page-moveFromBottom";
+                renderer.view.transitionEnd = "";
                 self.setViewSize.call(self, view.width, view.height);
             });
+
+            // Transition recieved
+            this.on("transition", function (transition) {
+                console.log("Transition recieved");
+                renderer.view.className = transition.start;
+                renderer.view.transitionEnd = transition.end;
+            });
+
+            // Canvas transition ended
+            renderer.view.addEventListener("webkitAnimationEnd", function () {
+                renderer.view.className = renderer.view.transitionEnd;
+                renderer.view.transitionEnd = "";
+            }, false);
+
+            // Reconnect button
             document.getElementById("state-indicator").addEventListener("click", function () {
                 self.connect.call(self);
             });
@@ -96,7 +115,7 @@ define(['AnslemClientConfig', 'NodeClient', 'pixi', 'touchables'], function (Ans
          * @returns {Object}
          */
         this.getActor = function (e) {
-            // Check if already exoits
+            // Check if already exists
             if (this.actors[e.id])
                 return this.actors[e.id];
 
@@ -135,26 +154,9 @@ define(['AnslemClientConfig', 'NodeClient', 'pixi', 'touchables'], function (Ans
                 actor.base.anchor.x = 0.5;
                 actor.base.anchor.y = 0.5;
                 actor.base.srcId = e.id;
-                //actor.hitArea = new PIXI.Rectangle(-actor.base.width / 2, actor.base.width / 2, -actor.base.height / 2, actor.base.height / 2);
-                var self = this;
-
-                actor.base.interactive = true;
-                actor.base.touchstart = function (event) {
-                    self.inputs.events.actortap = {
-                        id: event.target.parent.src.id
-                    };
-                    self.inputUpdate(self.inputs);
-                };
-                actor.base.mousedown = function (event) {
-                    self.inputs.events.actorclick = {
-                        id: event.target.parent.src.id
-                    };
-                    self.inputUpdate(self.inputs);
-                };
-
 
                 // Add indicator
-                actor.indicator = new PIXI.Sprite(this.sprites["star"]["default"][0]);
+                actor.indicator = new PIXI.Sprite(this.sprites["star01"]["default"][0]);
                 actor.addChild(actor.indicator);
                 actor.indicator.anchor.x = 0.5;
                 actor.indicator.anchor.y = 0.5;
@@ -162,6 +164,13 @@ define(['AnslemClientConfig', 'NodeClient', 'pixi', 'touchables'], function (Ans
                 actor.indicator.position.y = -(actor.base.height / 2) - (actor.indicator.height / 2);
                 actor.indicator.visible = false;
 
+                // Add bubble
+                actor.bubble = new PIXI.Text("", {font: "50px Arial", fill: "white"});
+                actor.bubble.anchor.x = 0.5;
+                actor.bubble.anchor.y = 0.5;
+                actor.bubble.position.y = 0;
+                actor.bubble.position.y = -(actor.base.height / 2) - (actor.bubble.height / 2);
+                actor.addChild(actor.bubble);
             }
 
             actor.outOfView = 0;
@@ -254,7 +263,6 @@ define(['AnslemClientConfig', 'NodeClient', 'pixi', 'touchables'], function (Ans
          * @protected
          */
         this.onstatechange = function (newstate) {
-            console.log("State change: " + newstate);
             document.getElementById("state-indicator").innerHTML = newstate;
             document.body.setAttribute("data-state", newstate);
 
@@ -279,6 +287,10 @@ define(['AnslemClientConfig', 'NodeClient', 'pixi', 'touchables'], function (Ans
             if (this.state !== "ready")
                 return false;
 
+            // Special
+            if (response.packet.transition)
+                renderer.view.className = response.packet.transition;
+
             // Setup list of visible actors
             var actors = {};
             for (var index in response.packet.inView) {
@@ -298,10 +310,20 @@ define(['AnslemClientConfig', 'NodeClient', 'pixi', 'touchables'], function (Ans
                     actor.base.setTexture(this.sprites[e.sprite.name][e.sprite.animation][e.sprite.frame]);
                     actor.base.onTextureUpdate();
 
+                    // Indicator
                     actor.indicator.visible = e.bubble.star ? true : false;
 
+                    // Shadow
                     if (actor.shadow) {
                         actor.shadow.position.y = actor.src.belowY - actor.src.y;
+                    }
+
+                    // Bubble
+                    if (e.bubble.message) {
+                        actor.bubble.setText(e.bubble.message);
+                        actor.bubble.scale.x = actor.scale.x;
+                    } else {
+                        actor.bubble.setText("");
                     }
                 }
 
@@ -314,7 +336,7 @@ define(['AnslemClientConfig', 'NodeClient', 'pixi', 'touchables'], function (Ans
             // Remove non visible actors
             for (var id in this.actors) {
                 this.actors[id].outOfView++;
-                if (this.actors[id].outOfView > 10)
+                if (this.actors[id].outOfView > 2)
                     this.actorsContainer.removeChild(this.actors[id]);
                 else
                     actors[id] = this.actors[id];
@@ -348,12 +370,12 @@ define(['AnslemClientConfig', 'NodeClient', 'pixi', 'touchables'], function (Ans
 
             // keyboard
             this.keyboard = new Touchables.TouchKeyboard();
-//            this.keyboard.onactivate = function () {
-//                self.pause.call(self);
-//            };
-//            this.keyboard.ondeactivate = function () {
-//                self.unpause.call(self);
-//            };
+            this.keyboard.ondeactivate = function (text) {
+                self.inputs.message = text;
+                self.inputUpdate(self.inputs);
+                self.inputs.message = "";
+                this.keyboard.keyboardValue.innerHTML = "";
+            };
 
             // Loading indicator
             this.loadingIndicator = document.createElement("progress");
