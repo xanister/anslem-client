@@ -1,18 +1,36 @@
 /**
- * Node client
+ * Node Room client
  *
- * @module NodeClient
+ * @module NodeRoomClient
  * @requires socket.io
  */
-define(['socket.io'], function (io) {
+(function (factory) {
+    // Register as amd module if available
+    if (typeof define === 'function' && define.amd) {
+        define(['socket.io'], function (io) {
+            module.exports = factory(io);
+        });
+    } else {
+        window.NodeRoomClient = factory(io);
+    }
+}(function (io) {
     /**
-     * NodeClient
+     * NodeRoomClient
      *
-     * @class NodeClient
+     * @class NodeRoomClient
      * @constructor
      * @param {String} serverAddress
      */
-    function NodeClient(serverAddress) {
+    function NodeRoomClient(serverAddress) {
+        /**
+         * Flag for binding client events
+         *
+         * @property clientEventsBound
+         * @private
+         * @type {Boolean}
+         */
+        var clientEventsBound = false;
+
         /**
          * IO socket, send some basic data to server on connect
          *
@@ -29,7 +47,7 @@ define(['socket.io'], function (io) {
          * @static
          * @type {Number}
          */
-        NodeClient.swipeVelocity = 0.3;
+        NodeRoomClient.swipeVelocity = 0.3;
 
         /**
          * Client screen height
@@ -126,6 +144,10 @@ define(['socket.io'], function (io) {
          * @protected
          */
         this.bindClientEvents = function () {
+            if (clientEventsBound)
+                return false;
+            clientEventsBound = true;
+
             var self = this;
             var touchStartX = {};
             var touchStartY = {};
@@ -140,7 +162,6 @@ define(['socket.io'], function (io) {
             window.addEventListener('orientationchange', function () {
                 var newScreenWidth = window.innerWidth;
                 var newScreenHeight = window.innerHeight;
-
                 if (newScreenWidth !== self.clientScreenWidth || newScreenHeight !== self.clientScreenHeight) {
                     self.setInfo({
                         screenWidth: newScreenWidth,
@@ -159,7 +180,6 @@ define(['socket.io'], function (io) {
             window.addEventListener('resize', function () {
                 var newScreenWidth = window.innerWidth;
                 var newScreenHeight = window.innerHeight;
-
                 if (newScreenWidth !== self.clientScreenWidth || newScreenHeight !== self.clientScreenHeight) {
                     self.setInfo({
                         screenWidth: newScreenWidth,
@@ -369,7 +389,6 @@ define(['socket.io'], function (io) {
                     touchStartX[touch.identifier] = touch.clientX;
                     touchStartY[touch.identifier] = touch.clientY;
                     touchStartTime[touch.identifier] = new Date().getTime();
-
                     self.inputs.events.touchstart = {};
                     self.inputs.events.touchmove = {};
                     self.inputs.events.touchstart[touch.identifier] = self.inputs.events.touchmove[touch.identifier] = {
@@ -414,7 +433,7 @@ define(['socket.io'], function (io) {
              * @param {Object} response
              */
             socket.on("connection", function (response) {
-                self.setState("running");
+                self.setState("connected");
                 self.setInfo({
                     screenWidth: self.clientScreenWidth,
                     screenHeight: self.clientScreenHeight,
@@ -483,13 +502,14 @@ define(['socket.io'], function (io) {
          *
          * @method connect
          */
-        NodeClient.prototype.connect = function () {
+        NodeRoomClient.prototype.connect = function () {
             this.setState("connecting");
             socket = io.connect(this.serverAddress, {
                 'forceNew': true,
                 'sync disconnect on unload': true
             });
             this.bindServerEvents();
+            this.bindClientEvents();
         };
 
         /**
@@ -497,7 +517,7 @@ define(['socket.io'], function (io) {
          *
          * @method disconnect
          */
-        NodeClient.prototype.disconnect = function () {
+        NodeRoomClient.prototype.disconnect = function () {
             this.setState("disconnected", true);
             socket.disconnect();
         };
@@ -508,7 +528,7 @@ define(['socket.io'], function (io) {
          * @method log
          * @param {String} message
          */
-        NodeClient.prototype.log = function (message) {
+        NodeRoomClient.prototype.log = function (message) {
             console.log(message);
         };
 
@@ -519,7 +539,7 @@ define(['socket.io'], function (io) {
          * @param {String} eventName
          * @param {Function} callback
          */
-        NodeClient.prototype.on = function (eventName, callback) {
+        NodeRoomClient.prototype.on = function (eventName, callback) {
             var self = this;
             socket.on(eventName, function (response) {
                 callback.call(self, response);
@@ -531,8 +551,8 @@ define(['socket.io'], function (io) {
          *
          * @method pause
          */
-        NodeClient.prototype.pause = function () {
-            if (this.state === "running")
+        NodeRoomClient.prototype.pause = function () {
+            if (this.state === "ready")
                 this.setState("paused", true);
         };
 
@@ -541,9 +561,8 @@ define(['socket.io'], function (io) {
          *
          * @method sendInputUpdate
          */
-        NodeClient.prototype.sendInputUpdate = function () {
-            if (this.state === "running")
-                socket.emit("input", this.inputs);
+        NodeRoomClient.prototype.sendInputUpdate = function () {
+            socket.emit("input", this.inputs);
             this.inputs.events = {};
         };
 
@@ -553,7 +572,7 @@ define(['socket.io'], function (io) {
          * @method setInfo
          * @param {Object} newInfo
          */
-        NodeClient.prototype.setInfo = function (newInfo) {
+        NodeRoomClient.prototype.setInfo = function (newInfo) {
             for (var key in newInfo)
                 this.info[key] = newInfo[key];
             socket.emit("info", this.info);
@@ -566,7 +585,7 @@ define(['socket.io'], function (io) {
          * @param {String} state
          * @param {Boolean} [updateServer=false]
          */
-        NodeClient.prototype.setState = function (state, updateServer) {
+        NodeRoomClient.prototype.setState = function (state, updateServer) {
             this.state = state;
             if (updateServer)
                 socket.emit("stateChange", state);
@@ -579,11 +598,8 @@ define(['socket.io'], function (io) {
          *
          * @method start
          */
-        NodeClient.prototype.start = function () {
-            if (!socket) {
-                this.connect();
-                this.bindClientEvents();
-            }
+        NodeRoomClient.prototype.start = function () {
+            this.connect();
         };
 
         /**
@@ -593,7 +609,7 @@ define(['socket.io'], function (io) {
          * @param {String} eventName
          * @param {Object} packet
          */
-        NodeClient.prototype.trigger = function (eventName, packet) {
+        NodeRoomClient.prototype.trigger = function (eventName, packet) {
             socket.emit(eventName, packet || false);
         };
 
@@ -602,11 +618,11 @@ define(['socket.io'], function (io) {
          *
          * @method unpause
          */
-        NodeClient.prototype.unpause = function () {
+        NodeRoomClient.prototype.unpause = function () {
             if (this.state === "paused")
-                this.setState("running", true);
+                this.setState("ready", true);
         };
     }
 
-    return NodeClient;
-});
+    return NodeRoomClient;
+}));

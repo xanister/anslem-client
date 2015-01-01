@@ -13,7 +13,7 @@ body{
     background-image: url(stars.jpg);
 }
 
-canvas{
+#primary-canvas{
     width: 100%;
     height: 100%;
 
@@ -27,7 +27,7 @@ canvas{
     -webkit-transition: -webkit-filter 300ms ease-in-out;
 }
 
-body[data-state='ready'] canvas{
+body[data-state='running'] #primary-canvas{
     -webkit-filter: blur(0px);
     filter: blur(0px);
 }
@@ -50,7 +50,8 @@ body[data-state='ready'] canvas{
 
 body[data-state='disconnected'] #loading-indicator,
 body[data-state='paused'] #loading-indicator,
-body[data-state='ready'] #loading-indicator{
+body[data-state='running'] #loading-indicator,
+body[data-state='transitioning'] #loading-indicator{
     width: 0;
     height: 0;
     opacity: 0;
@@ -71,7 +72,6 @@ body[data-state='ready'] #loading-indicator{
     font-family: arial;
     font-size: 16px;
 
-    cursor: pointer;
     pointer-events: none;
 
     transform: translateX(-50%) translateY(-50%);
@@ -81,7 +81,8 @@ body[data-state='ready'] #loading-indicator{
     -webkit-transition: all 100ms ease-in-out;
 }
 
-body[data-state='ready'] #state-indicator{
+body[data-state='running'] #state-indicator,
+body[data-state='transitioning'] #state-indicator{
     width: 0;
     height: 0;
     opacity: 0;
@@ -90,5 +91,6 @@ body[data-state='ready'] #state-indicator{
 body[data-state='socket error'] #state-indicator,
 body[data-state='socket connect error'] #state-indicator,
 body[data-state='disconnected'] #state-indicator{
+    cursor: pointer;
     pointer-events: auto;
 }

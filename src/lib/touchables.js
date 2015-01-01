@@ -9,11 +9,13 @@ define(function () {
     function TouchKeyboard() {
         this.active = false;
 
+        this.caps = false;
+
         this.keyList = [
             ["1", "2", "3", "4", "5", "6", "7", "8", "9", "0", "&larr;"],
             ["q", "w", "e", "r", "t", "y", "u", "i", "o", "p"],
             ["a", "s", "d", "f", "g", "h", "j", "k", "l", "'"],
-            ["z", "x", "c", "v", "b", "n", "m"]
+            ["&UpTeeArrow;", "z", "x", "c", "v", "b", "n", "m", "&lowbar;"]
         ];
 
         this.keys = [];
@@ -22,9 +24,15 @@ define(function () {
             if (key.keyString === "&larr;") {
                 if (this.keyboardValue.innerHTML.length > 0)
                     this.keyboardValue.innerHTML = this.keyboardValue.innerHTML.substr(0, this.keyboardValue.innerHTML.length - 1);
+            } else if (key.keyString === "&lowbar;") {
+                if (this.keyboardValue.innerHTML.length < this.keyboardValue.maxLength)
+                    this.keyboardValue.innerHTML += " ";
+            } else if (key.keyString === "&UpTeeArrow;") {
+                this.caps = !this.caps;
+                this.container.setAttribute("data-caps", this.caps);
             } else {
                 if (this.keyboardValue.innerHTML.length < this.keyboardValue.maxLength)
-                    this.keyboardValue.innerHTML += key.innerHTML;
+                    this.keyboardValue.innerHTML += (this.caps ? key.innerHTML.toUpperCase() : key.innerHTML);
             }
         }
 
@@ -67,7 +75,7 @@ define(function () {
             document.body.appendChild(wrapper);
 
             this.container = document.createElement("div");
-            this.container.className = "keyboard-container";
+            this.container.className = "keyboard-interior";
             wrapper.appendChild(this.container);
 
             this.keyboardToggle = document.createElement("div");

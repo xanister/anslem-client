@@ -4,7 +4,7 @@
 requirejs.config({
     baseUrl: 'src/lib',
     paths: {
-        'AnslemClientPixi': "../app/AnslemClientPixi",
+        'AnslemClient': "../app/AnslemClient",
         'AnslemClientConfig': "../app/AnslemClientConfig"
     },
     shim: {
@@ -18,7 +18,7 @@ requirejs.config({
  * Start it up
  */
 requirejs(
-        ['AnslemClientPixi', 'AnslemClientConfig'],
+        ['AnslemClient', 'AnslemClientConfig'],
         function (AnslemClient, AnslemClientConfig) {
             // Attach to window for debugging
             window.ac = new AnslemClient(AnslemClientConfig.serverUrl);
