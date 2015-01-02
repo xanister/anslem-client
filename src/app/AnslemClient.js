@@ -156,11 +156,11 @@ define(['AnslemClientConfig', 'NodeClient', 'pixi', 'touchables'], function (Ans
          * @returns {Object}
          */
         this.getActor = function (e) {
-            // Check if already exists
-            if (this.actors[e.id])
-                return this.actors[e.id];
-
             var actor;
+            if (!this.sprites[e.sprite.name]) {
+                console.log("Missing animation");
+                console.log(e.sprite);
+            }
             if (e.sprite.tileX) {
                 /* Tiling sprite */
                 actor = new PIXI.TilingSprite(
@@ -214,10 +214,11 @@ define(['AnslemClientConfig', 'NodeClient', 'pixi', 'touchables'], function (Ans
                 actor.addChild(actor.bubble);
             }
 
-            actor.outOfView = 0;
+            // Attach src
+            actor.src = e;
 
-            // Add the new actor to the stage
             this.actorsContainer.addChild(actor);
+            this.actors[actor.src.id] = actor;
 
             return actor;
         };
@@ -406,35 +407,46 @@ define(['AnslemClientConfig', 'NodeClient', 'pixi', 'touchables'], function (Ans
          * @protected
          */
         this.updateStage = function (packet) {
-            if (this.state !== "running")
-                return false;
-
             // Special
             if (packet.transition)
                 renderer.view.className = packet.transition;
 
-            // Setup list of visible actors
-            var actors = {};
-            for (var index in packet.inView) {
-                var e = packet.inView[index];
-                var actor = this.getActor(e);
+            // Remove actors
+            for (var index in packet.inViewRemoved) {
+                var a = packet.inViewRemoved[index];
+                this.actorsContainer.removeChild(this.actors[a.id]);
+                delete this.actors[a.id];
+            }
 
-                // Move actor to new location
-                actor.src = e;
+            // Add Actors
+            for (var index in packet.inViewAdded) {
+                var a = packet.inViewAdded[index];
+                var actor = this.getActor(a);
+            }
+
+            // Update changed actors
+            for (var index in packet.inViewChanged) {
+                var a = packet.inViewChanged[index];
+                this.actors[a.id].src = a;
+            }
+
+            // Move actors
+            for (var id in this.actors) {
+                var actor = this.actors[id];
                 if (actor.src.sprite.tileX) {
                     actor.width = renderer.view.width / this.actorsContainer.scale.x;
                     actor.tilePosition.x = -Math.floor(packet.viewX * actor.src.sprite.scrollSpeed) % actor.src.width;
-                    actor.position.y = Math.floor(e.y - packet.viewY - (e.height / 2)) - 1;
+                    actor.position.y = Math.floor(actor.src.y - packet.viewY - (actor.src.height / 2)) - 1;
                 } else {
-                    actor.scale.x = e.sprite.mirror;
+                    actor.scale.x = actor.src.sprite.mirror;
                     actor.position.x = Math.floor(actor.src.x - packet.viewX);
                     actor.position.y = Math.floor(actor.src.y - packet.viewY);
-                    actor.base.setTexture(this.sprites[e.sprite.name][e.sprite.animation][e.sprite.frame]);
-                    actor.base.tint = e.sprite.tint;
+                    actor.base.setTexture(this.sprites[actor.src.sprite.name][actor.src.sprite.animation][actor.src.sprite.frame]);
+                    actor.base.tint = actor.src.sprite.tint;
                     actor.base.onTextureUpdate();
 
                     // Indicator
-                    actor.indicator.visible = e.bubble.star ? true : false;
+                    actor.indicator.visible = actor.src.bubble.star ? true : false;
 
                     // Shadow
                     if (actor.shadow) {
@@ -442,29 +454,14 @@ define(['AnslemClientConfig', 'NodeClient', 'pixi', 'touchables'], function (Ans
                     }
 
                     // Bubble
-                    if (e.bubble.message) {
-                        actor.bubble.setText(e.bubble.message);
+                    if (actor.src.bubble.message) {
+                        actor.bubble.setText(actor.src.bubble.message);
                         actor.bubble.scale.x = actor.scale.x;
                     } else {
                         actor.bubble.setText("");
                     }
                 }
-
-                // Add to new list
-                actor.outOfView = 0;
-                actors[actor.src.id] = actor;
-                delete this.actors[actor.src.id];
             }
-
-            // Remove non visible actors
-            for (var id in this.actors) {
-                this.actors[id].outOfView++;
-                if (this.actors[id].outOfView > 4)
-                    this.actorsContainer.removeChild(this.actors[id]);
-                else
-                    actors[id] = this.actors[id];
-            }
-            this.actors = actors;
 
             // Sort by z
             this.actorsContainer.children.sort(function (a, b) {
@@ -495,7 +492,8 @@ define(['AnslemClientConfig', 'NodeClient', 'pixi', 'touchables'], function (Ans
             function render(timestamp) {
                 renderer.currentFps = Math.round(1000 / (timestamp - startTime));
                 startTime = timestamp;
-                renderer.render(stage);
+                if (self.state === "running")
+                    renderer.render(stage);
                 requestAnimFrame(render);
                 self.updateDom();
             }
