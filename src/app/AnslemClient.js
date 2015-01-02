@@ -99,6 +99,8 @@ define(['AnslemClientConfig', 'NodeClient', 'pixi', 'touchables'], function (Ans
             // Client succesfully attached
             this.on("attached", function (playerId) {
                 console.log("successfully attached to player " + playerId);
+                self.actorsContainer.removeChildren();
+                self.actors = {};
                 self.attached = true;
                 self.playerId = playerId;
             });
