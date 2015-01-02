@@ -126,8 +126,6 @@ define(['AnslemClientConfig', 'NodeClient', 'pixi', 'touchables'], function (Ans
             // View update recieved
             this.on("viewUpdate", function (view) {
                 console.log("recieved view update");
-                renderer.view.className = "pt-page-moveFromBottom";
-                renderer.view.transitionEnd = "";
                 self.setViewSize.call(self, view.width, view.height);
             });
 
@@ -369,8 +367,8 @@ define(['AnslemClientConfig', 'NodeClient', 'pixi', 'touchables'], function (Ans
          * @param {type} targetHeight
          */
         this.setViewSize = function (targetWidth, targetHeight) {
-            var width = this.clientScreenWidth;
-            var height = this.clientScreenHeight;
+            var width = window.innerWidth;
+            var height = window.innerHeight;
             var canvas = renderer.view;
             var scene = this.actorsContainer;
 
@@ -485,12 +483,13 @@ define(['AnslemClientConfig', 'NodeClient', 'pixi', 'touchables'], function (Ans
             });
 
             // Update view
-            if (this.state === "running") {
-                requestAnimFrame(function () {
+            var self = this;
+            requestAnimFrame(function () {
+                if (self.state === "running") {
                     renderer.render(stage);
-                });
-                this.updateDom();
-            }
+                    self.updateDom();
+                }
+            });
         };
 
         /**

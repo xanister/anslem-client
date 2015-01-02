@@ -141,13 +141,11 @@ define(['socket.io'], function (io) {
                 var newScreenWidth = window.innerWidth;
                 var newScreenHeight = window.innerHeight;
 
-                if (newScreenWidth !== self.clientScreenWidth || newScreenHeight !== self.clientScreenHeight) {
-                    self.setInfo({
-                        screenWidth: newScreenWidth,
-                        screenHeight: newScreenHeight,
-                        orientaion: window.orientation
-                    });
-                }
+                self.setInfo({
+                    screenWidth: newScreenWidth,
+                    screenHeight: newScreenHeight,
+                    orientaion: window.orientation
+                });
             });
 
             /**
@@ -160,13 +158,11 @@ define(['socket.io'], function (io) {
                 var newScreenWidth = window.innerWidth;
                 var newScreenHeight = window.innerHeight;
 
-                if (newScreenWidth !== self.clientScreenWidth || newScreenHeight !== self.clientScreenHeight) {
-                    self.setInfo({
-                        screenWidth: newScreenWidth,
-                        screenHeight: newScreenHeight,
-                        orientaion: window.orientation
-                    });
-                }
+                self.setInfo({
+                    screenWidth: newScreenWidth,
+                    screenHeight: newScreenHeight,
+                    orientaion: window.orientation
+                });
             });
 
             /**
@@ -554,6 +550,7 @@ define(['socket.io'], function (io) {
          * @param {Object} newInfo
          */
         NodeClient.prototype.setInfo = function (newInfo) {
+            console.log("infoupdate", newInfo);
             for (var key in newInfo)
                 this.info[key] = newInfo[key];
             socket.emit("info", this.info);
