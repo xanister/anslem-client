@@ -99,8 +99,6 @@ define(['AnslemClientConfig', 'NodeClient', 'pixi', 'touchables'], function (Ans
             // Client succesfully attached
             this.on("attached", function (playerId) {
                 console.log("successfully attached to player " + playerId);
-                self.actorsContainer.removeChildren();
-                self.actors = {};
                 self.attached = true;
                 self.playerId = playerId;
             });
@@ -140,11 +138,12 @@ define(['AnslemClientConfig', 'NodeClient', 'pixi', 'touchables'], function (Ans
                 renderer.view.className = transition.start;
                 setTimeout(function () {
                     renderer.view.className = transition.end;
-                    self.setState("running");
+                    self.setState("running", true);
+                    renderer.render(stage);
                 }, transition.duration);
             });
 
-            // Reconnect button
+            // Reconnect
             document.getElementById("state-indicator").addEventListener("click", function () {
                 self.connect.call(self);
             });
@@ -166,15 +165,15 @@ define(['AnslemClientConfig', 'NodeClient', 'pixi', 'touchables'], function (Ans
             if (e.sprite.tileX) {
                 /* Tiling sprite */
                 actor = new PIXI.TilingSprite(
-                        this.sprites[e.sprite.name][e.sprite.animation][e.sprite.frame],
-                        Math.max(this.clientScreenWidth, this.clientScreenHeight, e.width, this.sprites[e.sprite.name][e.sprite.animation][e.sprite.frame].width) * window.devicePixelRatio,
-                        this.sprites[e.sprite.name][e.sprite.animation][e.sprite.frame].height
+                        this.sprites[e.sprite.name][e.sprite.animation || "default"][e.sprite.frame || 0],
+                        Math.max(this.clientScreenWidth, this.clientScreenHeight, e.width, this.sprites[e.sprite.name][e.sprite.animation || "default"][e.sprite.frame || 0].width) * window.devicePixelRatio,
+                        this.sprites[e.sprite.name][e.sprite.animation || "default"][e.sprite.frame || 0].height
                         );
                 actor.pivot.y = 0.5;
 
                 // Scale far back layer TODO: Doesn't work
                 if (e.z === 0) {
-                    var scale = e.height / (this.sprites[e.sprite.name][e.sprite.animation][e.sprite.frame].height);
+                    var scale = e.height / (this.sprites[e.sprite.name][e.sprite.animation || "default"][e.sprite.frame || 0].height);
                     actor.scale.x = actor.scale.y = scale;
                 }
             } else {
@@ -192,7 +191,7 @@ define(['AnslemClientConfig', 'NodeClient', 'pixi', 'touchables'], function (Ans
                 }
 
                 // Add the base
-                actor.base = new PIXI.Sprite(this.sprites[e.sprite.name][e.sprite.animation][e.sprite.frame]);
+                actor.base = new PIXI.Sprite(this.sprites[e.sprite.name][e.sprite.animation || "default"][e.sprite.frame || 0]);
                 actor.addChild(actor.base);
                 actor.base.anchor.x = 0.5;
                 actor.base.anchor.y = 0.5;
@@ -282,10 +281,17 @@ define(['AnslemClientConfig', 'NodeClient', 'pixi', 'touchables'], function (Ans
          * @protected
          */
         this.onconnect = function (response) {
+            // Bind client events
             console.log("Connected");
             this.bindEvents();
+
+            // Ask for assets
             console.log("triggering assetRequest");
             this.trigger("assetRequest");
+
+            // Clear actors on stage when connecting
+            this.actorsContainer.removeChildren();
+            this.actors = {};
         };
 
         /**
@@ -440,11 +446,11 @@ define(['AnslemClientConfig', 'NodeClient', 'pixi', 'touchables'], function (Ans
                     actor.tilePosition.x = -Math.floor(packet.viewX * actor.src.sprite.scrollSpeed) % actor.src.width;
                     actor.position.y = Math.floor(actor.src.y - packet.viewY - (actor.src.height / 2)) - 1;
                 } else {
-                    actor.scale.x = actor.src.sprite.mirror;
+                    actor.scale.x = actor.src.sprite.mirror ? -1 : 1;
                     actor.position.x = Math.floor(actor.src.x - packet.viewX);
                     actor.position.y = Math.floor(actor.src.y - packet.viewY);
-                    actor.base.setTexture(this.sprites[actor.src.sprite.name][actor.src.sprite.animation][actor.src.sprite.frame]);
-                    actor.base.tint = actor.src.sprite.tint;
+                    actor.base.setTexture(this.sprites[actor.src.sprite.name][actor.src.sprite.animation || "default"][actor.src.sprite.frame || 0]);
+                    actor.base.tint = actor.src.sprite.tint || 0xFFFFFF;
                     actor.base.onTextureUpdate();
 
                     // Indicator
@@ -477,6 +483,14 @@ define(['AnslemClientConfig', 'NodeClient', 'pixi', 'touchables'], function (Ans
                     return 1;
                 return 0;
             });
+
+            // Update view
+            if (this.state === "running") {
+                requestAnimFrame(function () {
+                    renderer.render(stage);
+                });
+                this.updateDom();
+            }
         };
 
         /**
@@ -486,20 +500,24 @@ define(['AnslemClientConfig', 'NodeClient', 'pixi', 'touchables'], function (Ans
          */
         AnslemClient.prototype.start = function () {
             NodeClient.prototype.start.call(this);
-
             this.initializeDom();
 
-            var startTime = 1;
-            var self = this;
-            function render(timestamp) {
-                renderer.currentFps = Math.round(1000 / (timestamp - startTime));
-                startTime = timestamp;
-                if (self.state === "running")
-                    renderer.render(stage);
-                requestAnimFrame(render);
-                self.updateDom();
-            }
-            requestAnimFrame(render);
+            /*
+             var startTime = 1;
+             var self = this;
+             function render(timestamp) {
+             renderer.currentFps = Math.round(1000 / (timestamp - startTime));
+             startTime = timestamp;
+
+             // Render on loop
+             if (self.state === "running") {
+             renderer.render(stage);
+             self.updateDom();
+             }
+             requestAnimFrame(render);
+             }
+             requestAnimFrame(render);
+             */
         };
     }
     AnslemClient.prototype = new NodeClient();
