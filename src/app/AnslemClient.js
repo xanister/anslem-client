@@ -112,6 +112,11 @@ define(['AnslemClientConfig', 'NodeClient', 'pixi', 'touchables'], function (Ans
             // Forward recieved
             this.on("forward", function (serverAddress) {
                 console.log("received forward");
+                //                self.ondisconnect = function () {
+                //                    self.serverAddress = serverAddress;
+                //                    self.connect();
+                //                };
+                self.attached = false;
                 self.disconnect();
                 self.serverAddress = serverAddress;
                 self.connect();
@@ -137,7 +142,9 @@ define(['AnslemClientConfig', 'NodeClient', 'pixi', 'touchables'], function (Ans
                 setTimeout(function () {
                     renderer.view.className = transition.end;
                     self.setState("running", true);
-                    renderer.render(stage);
+                    requestAnimFrame(function () {
+                        renderer.render(stage);
+                    });
                 }, transition.duration);
             });
 
@@ -289,6 +296,9 @@ define(['AnslemClientConfig', 'NodeClient', 'pixi', 'touchables'], function (Ans
 
             // Clear actors on stage when connecting
             this.actorsContainer.removeChildren();
+            for (var i; i < this.actorsContainer.length; i++) {
+                this.actorsContainer.removeChild(this.actorsContainer[i]);
+            }
             this.actors = {};
         };
 
