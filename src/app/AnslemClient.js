@@ -2,9 +2,9 @@
  * Connects to server and draws to stage
  *
  * @module Anslem
- * @requires AnslemClientConfig, NodeClient, pixi
+ * @requires AnslemClientConfig, NodeRoomClient, pixi
  */
-define(['AnslemClientConfig', 'NodeClient', 'pixi', 'touchables'], function (AnslemClientConfig, NodeClient, PIXI, Touchables) {
+define(['AnslemClientConfig', 'NodeRoomClient', 'pixi', 'touchables'], function (AnslemClientConfig, NodeRoomClient, PIXI, Touchables) {
     /**
      * Anslem game client wrapper
      *
@@ -13,7 +13,8 @@ define(['AnslemClientConfig', 'NodeClient', 'pixi', 'touchables'], function (Ans
      * @param {String} serverAddress
      */
     function AnslemClient(serverAddress) {
-        NodeClient.call(this, serverAddress);
+        NodeRoomClient.call(this, serverAddress);
+
         /**
          * Pixi renderer
          *
@@ -21,7 +22,7 @@ define(['AnslemClientConfig', 'NodeClient', 'pixi', 'touchables'], function (Ans
          * @private
          * @type {Object}
          */
-        var renderer = PIXI.autoDetectRenderer(this.clientScreenWidth, this.clientScreenHeight, {
+        var renderer = PIXI.autoDetectRenderer(window.innerWidth, window.innerHeight, {
             resolution: 1,
             transparent: true
         });
@@ -56,20 +57,20 @@ define(['AnslemClientConfig', 'NodeClient', 'pixi', 'touchables'], function (Ans
         stage.addChild(this.actorsContainer);
 
         /**
-         * Attached to player
-         *
-         * @property attached
-         * @type {Boolean}
-         */
-        this.attached = false;
-
-        /**
          * Debugging flag
          *
          * @property debugging
          * @type {Boolean}
          */
-        this.debugging = false;
+        this.debugging = true;
+
+        /**
+         * Pause rendering flag
+         *
+         * @property pauseRender
+         * @type {Boolean}
+         */
+        this.pauseRender = false;
 
         /**
          * Universe player id
@@ -97,29 +98,32 @@ define(['AnslemClientConfig', 'NodeClient', 'pixi', 'touchables'], function (Ans
             var self = this;
 
             // Client succesfully attached
-            this.on("attached", function (playerId) {
-                console.log("successfully attached to player " + playerId);
-                self.attached = true;
-                self.playerId = playerId;
-            });
+            this.on("attached", function (event) {
+                self.log("attached to player " + event.playerId);
+                self.playerId = event.playerId;
 
-            // Asset update recieved
-            this.on("assetUpdate", function (assetList) {
-                console.log("received asset update");
-                self.loadAssets.call(self, assetList);
+                self.setState("loading", true);
+                self.loadAssets.call(self, event.assets, function () {
+                    self.setViewSize.call(self, event.view.width, event.view.height);
+                    self.setState("running", true);
+                    self.log("ready");
+                    self.trigger("ready");
+                });
             });
 
             // Forward recieved
             this.on("forward", function (serverAddress) {
-                console.log("received forward");
-                //                self.ondisconnect = function () {
-                //                    self.serverAddress = serverAddress;
-                //                    self.connect();
-                //                };
-                self.attached = false;
+                self.log("received forward");
+                self.setState("forwarding");
+                self.ondisconnect = function () {
+                    self.serverAddress = serverAddress;
+                    self.connect();
+                };
                 self.disconnect();
-                self.serverAddress = serverAddress;
-                self.connect();
+
+                self.log("removing all actors");
+                self.actorsContainer.removeChildren();
+                self.actors = {};
             });
 
             // Frame update recieved
@@ -128,29 +132,51 @@ define(['AnslemClientConfig', 'NodeClient', 'pixi', 'touchables'], function (Ans
                 self.lastPacket = packet;
             });
 
-            // View update recieved
-            this.on("viewUpdate", function (view) {
-                console.log("recieved view update");
-                self.setViewSize.call(self, view.width, view.height);
-            });
-
             // Transition recieved
             this.on("transition", function (transition) {
-                console.log("recieved transition");
-                self.setState("transitioning");
-                renderer.view.className = transition.start;
-                setTimeout(function () {
-                    renderer.view.className = transition.end;
-                    self.setState("running", true);
-                    requestAnimFrame(function () {
-                        renderer.render(stage);
-                    });
-                }, transition.duration);
+                self.log("recieved transition");
+                self.pauseRender = transition.pauseRender || false;
+                renderer.view.className = transition.class;
+                if (self.pauseRender) {
+                    setTimeout(function () {
+                        requestAnimFrame(function () {
+                            renderer.render(stage);
+                            self.pauseRender = false;
+                        });
+                    }, transition.pauseRender);
+                }
+            });
+
+            // View update recieved
+            this.on("viewUpdate", function (view) {
+                self.log("recieved view update");
+                self.setViewSize.call(self, view.width, view.height);
             });
 
             // Reconnect
             document.getElementById("state-indicator").addEventListener("click", function () {
                 self.connect.call(self);
+            });
+
+            // Hotkeys
+            document.addEventListener("keydown", function (event) {
+                if (event.keyCode === 13) {
+                    if (event.altKey) {
+                        // Fullscreen request
+                        if (document.fullScreen) {
+                            document.exitFullscreen();
+
+                        } else {
+                            document.body.webkitRequestFullScreen ? document.body.webkitRequestFullscreen() : document.body.mozRequestFullscreen();
+                        }
+                    } else {
+                        // Keyboard message popup
+                        var message = prompt("Message:");
+                        if (message) {
+                            self.inputs.events.message = message;
+                        }
+                    }
+                }
             });
         };
 
@@ -163,15 +189,11 @@ define(['AnslemClientConfig', 'NodeClient', 'pixi', 'touchables'], function (Ans
          */
         this.getActor = function (e) {
             var actor;
-            if (!this.sprites[e.sprite.name]) {
-                console.log("Missing animation");
-                console.log(e.sprite);
-            }
             if (e.sprite.tileX) {
                 /* Tiling sprite */
                 actor = new PIXI.TilingSprite(
                         this.sprites[e.sprite.name][e.sprite.animation || "default"][e.sprite.frame || 0],
-                        Math.max(this.clientScreenWidth, this.clientScreenHeight, e.width, this.sprites[e.sprite.name][e.sprite.animation || "default"][e.sprite.frame || 0].width) * window.devicePixelRatio,
+                        Math.max(window.innerWidth, window.innerHeight, e.width, this.sprites[e.sprite.name][e.sprite.animation || "default"][e.sprite.frame || 0].width) * window.devicePixelRatio,
                         this.sprites[e.sprite.name][e.sprite.animation || "default"][e.sprite.frame || 0].height
                         );
                 actor.pivot.y = 0.5;
@@ -234,11 +256,10 @@ define(['AnslemClientConfig', 'NodeClient', 'pixi', 'touchables'], function (Ans
          *
          * @event loadAssets
          * @param {Object} assetList
+         * @param {Function} [callback=false]
          * @protected
          */
-        this.loadAssets = function (assetList) {
-            this.setState("loading", true);
-
+        this.loadAssets = function (assetList, callback) {
             var sprites = assetList.sprites;
             var imagePaths = [];
             for (var index in sprites) {
@@ -249,7 +270,8 @@ define(['AnslemClientConfig', 'NodeClient', 'pixi', 'touchables'], function (Ans
                 }
             }
             if (imagePaths.length === 0) {
-                this.setState("running", true);
+                if (callback)
+                    callback();
                 return true;
             }
 
@@ -259,7 +281,6 @@ define(['AnslemClientConfig', 'NodeClient', 'pixi', 'touchables'], function (Ans
             var self = this;
             assetLoader.onProgress = function () {
                 self.loadingIndicator.value++;
-                self.setState("loading (" + self.loadingIndicator.value + "/" + self.loadingIndicator.max + ")");
             };
             assetLoader.onComplete = function () {
                 for (var name in sprites) {
@@ -273,7 +294,8 @@ define(['AnslemClientConfig', 'NodeClient', 'pixi', 'touchables'], function (Ans
                         }
                     }
                 }
-                self.setState("running", true);
+                if (callback)
+                    callback();
             };
             assetLoader.load();
         };
@@ -287,30 +309,11 @@ define(['AnslemClientConfig', 'NodeClient', 'pixi', 'touchables'], function (Ans
          */
         this.onconnect = function (response) {
             // Bind client events
-            console.log("Connected");
             this.bindEvents();
 
-            // Ask for assets
-            console.log("triggering assetRequest");
-            this.trigger("assetRequest");
-
-            // Clear actors on stage when connecting
-            this.actorsContainer.removeChildren();
-            for (var i; i < this.actorsContainer.length; i++) {
-                this.actorsContainer.removeChild(this.actorsContainer[i]);
-            }
-            this.actors = {};
-        };
-
-        /**
-         * Disconnected to server callback
-         *
-         * @event ondisonnect
-         * @protected
-         */
-        this.ondisconnect = function () {
-            console.log("Disconnected");
-            this.attached = false;
+            // Join the server
+            this.log("joining the server");
+            this.trigger("playerjoin", {playerId: this.playerId});
         };
 
         /**
@@ -321,18 +324,8 @@ define(['AnslemClientConfig', 'NodeClient', 'pixi', 'touchables'], function (Ans
          * @protected
          */
         this.onstatechange = function (newState) {
-            console.log("State changed: " + newState);
             document.getElementById("state-indicator").innerHTML = newState;
             document.body.setAttribute("data-state", newState);
-
-            switch (newState) {
-                case "disconnected":
-                    break;
-                case "running":
-                    if (!this.attached)
-                        this.trigger("playerjoin", {playerId: this.playerId});
-                    break;
-            }
         };
 
         /**
@@ -353,15 +346,6 @@ define(['AnslemClientConfig', 'NodeClient', 'pixi', 'touchables'], function (Ans
                 //self.sendInputUpdate();
                 self.keyboard.keyboardValue.innerHTML = "";
             };
-
-            document.addEventListener("keydown", function (event) {
-                if (event.keyCode === 13) {
-                    var message = prompt("Message:");
-                    if (message) {
-                        self.inputs.events.message = message;
-                    }
-                }
-            });
 
             // Loading indicator
             this.loadingIndicator = document.createElement("progress");
@@ -423,21 +407,21 @@ define(['AnslemClientConfig', 'NodeClient', 'pixi', 'touchables'], function (Ans
          * @protected
          */
         this.updateStage = function (packet) {
-            // Special
-            if (packet.transition)
-                renderer.view.className = packet.transition;
-
             // Remove actors
             for (var index in packet.inViewRemoved) {
                 var a = packet.inViewRemoved[index];
                 this.actorsContainer.removeChild(this.actors[a.id]);
                 delete this.actors[a.id];
+                if (this.debugging)
+                    this.log("removed actor " + a.sprite.name);
             }
 
             // Add Actors
             for (var index in packet.inViewAdded) {
                 var a = packet.inViewAdded[index];
                 var actor = this.getActor(a);
+                if (this.debugging)
+                    this.log("added actor " + a.sprite.name);
             }
 
             // Update changed actors
@@ -495,10 +479,11 @@ define(['AnslemClientConfig', 'NodeClient', 'pixi', 'touchables'], function (Ans
             // Update view
             var self = this;
             requestAnimFrame(function () {
-                if (self.state === "running") {
+                if (!self.pauseRender) {
                     renderer.render(stage);
                     self.updateDom();
                 }
+                return false;
             });
         };
 
@@ -508,28 +493,11 @@ define(['AnslemClientConfig', 'NodeClient', 'pixi', 'touchables'], function (Ans
          * @method init
          */
         AnslemClient.prototype.start = function () {
-            NodeClient.prototype.start.call(this);
+            NodeRoomClient.prototype.start.call(this);
             this.initializeDom();
-
-            /*
-             var startTime = 1;
-             var self = this;
-             function render(timestamp) {
-             renderer.currentFps = Math.round(1000 / (timestamp - startTime));
-             startTime = timestamp;
-
-             // Render on loop
-             if (self.state === "running") {
-             renderer.render(stage);
-             self.updateDom();
-             }
-             requestAnimFrame(render);
-             }
-             requestAnimFrame(render);
-             */
         };
     }
-    AnslemClient.prototype = new NodeClient();
+    AnslemClient.prototype = new NodeRoomClient();
     AnslemClient.prototype.constructor = AnslemClient;
 
     return AnslemClient;

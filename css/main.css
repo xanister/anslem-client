@@ -10,12 +10,15 @@ html,body{
 body{
     position: relative;
 
-    background-image: url(stars.jpg);
+    background-color: skyblue;
+    /*    background-image: url(stars.jpg);*/
 }
 
 #primary-canvas{
     width: 100%;
     height: 100%;
+
+    background-color: skyblue;
 
     transform: translateZ(0);
     -webkit-transform: translateZ(0);
@@ -27,6 +30,7 @@ body{
     -webkit-transition: -webkit-filter 300ms ease-in-out;
 }
 
+body[data-state='paused'] #primary-canvas,
 body[data-state='running'] #primary-canvas{
     -webkit-filter: blur(0px);
     filter: blur(0px);

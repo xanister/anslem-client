@@ -1,19 +1,10 @@
 /**
- * Node Room client
+ * Node client
  *
  * @module NodeRoomClient
  * @requires socket.io
  */
-(function (factory) {
-    // Register as amd module if available
-    if (typeof define === 'function' && define.amd) {
-        define(['socket.io'], function (io) {
-            module.exports = factory(io);
-        });
-    } else {
-        window.NodeRoomClient = factory(io);
-    }
-}(function (io) {
+define(['socket.io'], function (io) {
     /**
      * NodeRoomClient
      *
@@ -22,15 +13,6 @@
      * @param {String} serverAddress
      */
     function NodeRoomClient(serverAddress) {
-        /**
-         * Flag for binding client events
-         *
-         * @property clientEventsBound
-         * @private
-         * @type {Boolean}
-         */
-        var clientEventsBound = false;
-
         /**
          * IO socket, send some basic data to server on connect
          *
@@ -50,30 +32,6 @@
         NodeRoomClient.swipeVelocity = 0.3;
 
         /**
-         * Client screen height
-         *
-         * @property clientScreenHeight
-         * @type {Number}
-         */
-        this.clientScreenHeight = window.innerHeight;
-
-        /**
-         * Client screen width
-         *
-         * @property clientScreenWidth
-         * @type {Number}
-         */
-        this.clientScreenWidth = window.innerWidth;
-
-        /**
-         * Is touch device
-         *
-         * @property clientTouchDevice
-         * @type {Boolean}
-         */
-        this.clientTouchDevice = ("ontouchstart" in window || window.DocumentTouch && document instanceof DocumentTouch);
-
-        /**
          * Client info synced to server
          *
          * @property info
@@ -88,6 +46,14 @@
          * @type {Object}
          */
         this.inputs = {keyboard: {}, touches: {}, events: {}};
+
+        /**
+         * Is touch device
+         *
+         * @property isTouchDevice
+         * @type {Boolean}
+         */
+        this.isTouchDevice = ("ontouchstart" in window || window.DocumentTouch && document instanceof DocumentTouch);
 
         /**
          * Connection success callback
@@ -144,10 +110,6 @@
          * @protected
          */
         this.bindClientEvents = function () {
-            if (clientEventsBound)
-                return false;
-            clientEventsBound = true;
-
             var self = this;
             var touchStartX = {};
             var touchStartY = {};
@@ -162,13 +124,12 @@
             window.addEventListener('orientationchange', function () {
                 var newScreenWidth = window.innerWidth;
                 var newScreenHeight = window.innerHeight;
-                if (newScreenWidth !== self.clientScreenWidth || newScreenHeight !== self.clientScreenHeight) {
-                    self.setInfo({
-                        screenWidth: newScreenWidth,
-                        screenHeight: newScreenHeight,
-                        orientaion: window.orientation
-                    });
-                }
+
+                self.setInfo({
+                    screenWidth: newScreenWidth,
+                    screenHeight: newScreenHeight,
+                    orientaion: window.orientation
+                });
             });
 
             /**
@@ -180,13 +141,12 @@
             window.addEventListener('resize', function () {
                 var newScreenWidth = window.innerWidth;
                 var newScreenHeight = window.innerHeight;
-                if (newScreenWidth !== self.clientScreenWidth || newScreenHeight !== self.clientScreenHeight) {
-                    self.setInfo({
-                        screenWidth: newScreenWidth,
-                        screenHeight: newScreenHeight,
-                        orientaion: window.orientation
-                    });
-                }
+
+                self.setInfo({
+                    screenWidth: newScreenWidth,
+                    screenHeight: newScreenHeight,
+                    orientaion: window.orientation
+                });
             });
 
             /**
@@ -389,6 +349,7 @@
                     touchStartX[touch.identifier] = touch.clientX;
                     touchStartY[touch.identifier] = touch.clientY;
                     touchStartTime[touch.identifier] = new Date().getTime();
+
                     self.inputs.events.touchstart = {};
                     self.inputs.events.touchmove = {};
                     self.inputs.events.touchstart[touch.identifier] = self.inputs.events.touchmove[touch.identifier] = {
@@ -433,11 +394,12 @@
              * @param {Object} response
              */
             socket.on("connection", function (response) {
-                self.setState("connected");
+                self.log("connected");
+                self.setState("running");
                 self.setInfo({
-                    screenWidth: self.clientScreenWidth,
-                    screenHeight: self.clientScreenHeight,
-                    touchDevice: self.clientTouchDevice,
+                    screenHeight: window.innerHeight,
+                    screenWidth: window.innerWidth,
+                    touchDevice: self.isTouchDevice,
                     orientaion: window.orientaion || false,
                     pixelRatio: window.devicePixelRatio || 1
                 });
@@ -453,7 +415,8 @@
              * @param {Object} response
              */
             socket.on('connect_error', function (response) {
-                self.setState("socket connect error");
+                self.log(response, "error");
+                self.setState("disconnected");
                 socket.disconnect();
                 if (self.onerror)
                     self.onerror(response);
@@ -466,8 +429,10 @@
              * @private
              */
             socket.on('disconnect', function () {
+                self.log("disconnected");
                 self.setState("disconnected");
                 socket.disconnect();
+                socket = false;
                 if (self.ondisconnect)
                     self.ondisconnect();
             });
@@ -480,6 +445,7 @@
              * @param {Object} response
              */
             socket.on('error', function (response) {
+                self.log(response, "error");
                 self.setState("socket error");
                 socket.disconnect();
                 if (self.onerror)
@@ -509,7 +475,6 @@
                 'sync disconnect on unload': true
             });
             this.bindServerEvents();
-            this.bindClientEvents();
         };
 
         /**
@@ -527,9 +492,10 @@
          *
          * @method log
          * @param {String} message
+         * @param {String} [logType=info]
          */
-        NodeRoomClient.prototype.log = function (message) {
-            console.log(message);
+        NodeRoomClient.prototype.log = function (message, logType) {
+            console.log("[" + (logType || "info") + "] " + message);
         };
 
         /**
@@ -552,7 +518,7 @@
          * @method pause
          */
         NodeRoomClient.prototype.pause = function () {
-            if (this.state === "ready")
+            if (this.state === "running")
                 this.setState("paused", true);
         };
 
@@ -562,7 +528,8 @@
          * @method sendInputUpdate
          */
         NodeRoomClient.prototype.sendInputUpdate = function () {
-            socket.emit("input", this.inputs);
+            if (this.state === "running")
+                socket.emit("input", this.inputs);
             this.inputs.events = {};
         };
 
@@ -586,6 +553,7 @@
          * @param {Boolean} [updateServer=false]
          */
         NodeRoomClient.prototype.setState = function (state, updateServer) {
+            this.log("state change: " + state + (updateServer ? ", with server update" : ""));
             this.state = state;
             if (updateServer)
                 socket.emit("stateChange", state);
@@ -599,7 +567,10 @@
          * @method start
          */
         NodeRoomClient.prototype.start = function () {
-            this.connect();
+            if (!socket) {
+                this.connect();
+                this.bindClientEvents();
+            }
         };
 
         /**
@@ -620,9 +591,9 @@
          */
         NodeRoomClient.prototype.unpause = function () {
             if (this.state === "paused")
-                this.setState("ready", true);
+                this.setState("running", true);
         };
     }
 
     return NodeRoomClient;
-}));
+});

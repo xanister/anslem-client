@@ -120,6 +120,8 @@
     transition: opacity 500ms ease-in-out;
     -webkit-transition: opacity 500ms ease-in-out;
 
+    pointer-events: none;
+
     background-color: #434343;
 
     border-radius: 50%;
@@ -135,6 +137,8 @@
 
     transform: translateX(50%) translateY(50%);
     -webkit-transform: translateX(50%) translateY(50%);
+
+    pointer-events: none;
 
     background-color: #434343;
 
