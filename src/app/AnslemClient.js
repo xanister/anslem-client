@@ -132,6 +132,16 @@ define(['AnslemClientConfig', 'NodeRoomClient', 'pixi', 'touchables'], function 
                 self.lastPacket = packet;
             });
 
+            // Headline recieved
+            this.on("headline", function (headline) {
+                self.log("recieved headline");
+                self.headline.innerHTML = headline.message;
+                self.headline.className = "active";
+                setTimeout(function () {
+                    self.headline.className = "";
+                }, headline.time || 3000);
+            });
+
             // Transition recieved
             this.on("transition", function (transition) {
                 self.log("recieved transition");
@@ -351,6 +361,11 @@ define(['AnslemClientConfig', 'NodeRoomClient', 'pixi', 'touchables'], function 
             this.loadingIndicator = document.createElement("progress");
             this.loadingIndicator.id = "loading-indicator";
             document.body.appendChild(this.loadingIndicator);
+
+            // Headline
+            this.headline = document.createElement("h2");
+            this.headline.id = "headline";
+            document.body.appendChild(this.headline);
         };
 
         /**

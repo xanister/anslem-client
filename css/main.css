@@ -5,6 +5,10 @@ html,body{
     padding: 0;
 
     overflow: hidden;
+
+    color: white;
+
+    font-family: arial;
 }
 
 body{
@@ -73,7 +77,6 @@ body[data-state='transitioning'] #loading-indicator{
     color: white;
 
     line-height: 20px;
-    font-family: arial;
     font-size: 16px;
 
     pointer-events: none;
@@ -97,4 +100,22 @@ body[data-state='socket connect error'] #state-indicator,
 body[data-state='disconnected'] #state-indicator{
     cursor: pointer;
     pointer-events: auto;
+}
+
+#headline{
+    position: absolute;
+    left: 50%;
+    top: 50%;
+
+    opacity: 0;
+
+    transform: translateX(-50%) translateY(-50%);
+    -webkit-transform: translateX(-50%) translateY(-50%);
+
+    transition: opacity 300ms ease-in-out;
+    -webkit-transition: opacity 300ms ease-in-out;
+}
+
+#headline.active{
+    opacity: 1;
 }
